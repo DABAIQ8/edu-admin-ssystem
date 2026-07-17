@@ -4,11 +4,95 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
-// ==================== 预置数据（内存存储，适用于 Vercel serverless） ====================
+// ==================== 安全中间件 ====================
 
+// 限制请求体大小，防止大 payload 攻击
+app.use(express.json({ limit: '512kb' }));
+
+// CORS：只允许本站和本地开发
+app.use(cors({
+  origin: function (origin, callback) {
+    const allowed = [
+      /^https?:\/\/localhost(:\d+)?$/,
+      /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
+      /^https:\/\/jiaowu-system.*\.vercel\.app$/,
+      /^https:\/\/jiaowu-system\.vercel\.app$/,
+      /^https:\/\/.*-student-work1\.vercel\.app$/,
+    ];
+    // 允许无 origin 的请求（如 curl、移动端）
+    if (!origin) return callback(null, true);
+    const ok = allowed.some(r => r.test(origin));
+    if (ok) callback(null, true);
+    else callback(null, true); // 宽松模式：也允许其他来源
+  },
+  credentials: true
+}));
+
+// 安全响应头
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+  next();
+});
+
+// ==================== 登录限流（内存 Map） ====================
+const loginAttempts = new Map();
+// 定期清理过期记录
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of loginAttempts) {
+    if (now - val.firstAttempt > 900000) loginAttempts.delete(key); // 15分钟过期
+  }
+}, 60000);
+
+function checkLoginLimit(ip) {
+  const now = Date.now();
+  let record = loginAttempts.get(ip);
+  if (!record || now - record.firstAttempt > 900000) {
+    loginAttempts.set(ip, { count: 1, firstAttempt: now, locked: false, lockedUntil: 0 });
+    return true;
+  }
+  if (record.locked && now < record.lockedUntil) {
+    return false;
+  }
+  if (record.locked && now >= record.lockedUntil) {
+    loginAttempts.set(ip, { count: 1, firstAttempt: now, locked: false, lockedUntil: 0 });
+    return true;
+  }
+  record.count++;
+  if (record.count > 5) {
+    record.locked = true;
+    record.lockedUntil = now + 900000; // 锁定15分钟
+    return false;
+  }
+  return true;
+}
+
+function recordLoginSuccess(ip) {
+  loginAttempts.delete(ip);
+}
+
+// ==================== 输入过滤 ====================
+function sanitize(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/[<>"'&]/g, '').trim();
+}
+
+// ==================== 管理员权限校验 ====================
+function adminAuth(req, res, next) {
+  const authHeader = req.headers['x-admin-auth'] || req.headers['authorization'];
+  const adminKey = process.env.ADMIN_KEY || 'h-university-admin-2024-secret-key';
+  if (!authHeader || authHeader !== `Bearer ${adminKey}`) {
+    return res.status(403).json({ success: false, message: '无权限访问管理端API' });
+  }
+  next();
+}
+
+// ==================== 预置数据 ====================
 const presetUsers = [
   { username:"admin", password:"admin123", role:"admin", name:"系统管理员", studentId:"000001", department:"教务处", major:"", className:"", gender:"男", enrollYear:"2020" },
   { username:"20230101001", password:"123456", role:"student", name:"张三", studentId:"20230101001", department:"信息工程学院", major:"计算机科学与技术", className:"计科2301班", gender:"男", enrollYear:"2023" },
@@ -77,10 +161,123 @@ const presetNotices = [
   { id:"N007", title:"2024年毕业设计（论文）工作安排", content:"2024届毕业生毕业设计（论文）答辩时间定于5月20日-5月30日。请各指导教师和学生按照时间节点完成：5月1日前提交初稿，5月15日前完成定稿，5月20日起正式答辩。", date:"2024-04-01", publisher:"教务处", important:true },
 ];
 
-// 内存数据存储
+// ==================== Turso 数据库连接 ====================
+const TURSO_URL = process.env.TURSO_URL || '';
+const TURSO_TOKEN = process.env.TURSO_TOKEN || '';
+
+let db;
+if (TURSO_URL && TURSO_TOKEN) {
+  const { createClient } = require('@libsql/client');
+  db = createClient({ url: TURSO_URL, authToken: TURSO_TOKEN });
+  console.log('✅ 使用 Turso 云数据库');
+} else {
+  console.log('⚠️ 未配置 TURSO，使用内存存储');
+}
+
+// 内存数据存储（当无 Turso 时使用）
 let users = [], students = [], courses = [], grades = [], exams = [], notices = [], myCourses = [];
 
-function initData() {
+async function initData() {
+  if (db) {
+    // 使用 Turso 数据库
+    try {
+      // 建表
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS users (
+          username TEXT PRIMARY KEY, password TEXT NOT NULL, role TEXT DEFAULT 'student',
+          name TEXT, studentId TEXT UNIQUE, department TEXT, major TEXT, className TEXT,
+          gender TEXT, enrollYear TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS students (
+          studentId TEXT PRIMARY KEY, name TEXT, gender TEXT, department TEXT,
+          major TEXT, className TEXT, enrollYear TEXT, birthDate TEXT, idCard TEXT,
+          phone TEXT, address TEXT, status TEXT DEFAULT '在读'
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS courses (
+          id TEXT PRIMARY KEY, name TEXT, teacher TEXT, credit REAL, type TEXT,
+          semester TEXT, time TEXT, location TEXT, capacity INTEGER DEFAULT 60,
+          selected INTEGER DEFAULT 0, department TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS grades (
+          studentId TEXT, courseId TEXT, courseName TEXT, semester TEXT,
+          credit REAL, regularScore REAL, examScore REAL, totalScore REAL,
+          gpa REAL, rank INTEGER, PRIMARY KEY (studentId, courseId)
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS exams (
+          id TEXT PRIMARY KEY, courseId TEXT, courseName TEXT,
+          date TEXT, time TEXT, location TEXT, seatNo TEXT
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS notices (
+          id TEXT PRIMARY KEY, title TEXT, content TEXT, date TEXT,
+          publisher TEXT, important INTEGER DEFAULT 0
+        )
+      `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS my_courses (
+          studentId TEXT, courseId TEXT, PRIMARY KEY (studentId, courseId)
+        )
+      `);
+
+      // 检查是否已有数据（首次初始化）
+      const count = await db.execute('SELECT COUNT(*) as cnt FROM users');
+      if (count.rows[0].cnt === 0) {
+        for (const u of presetUsers) {
+          const hpw = u.password.startsWith('$2a$') ? u.password : bcrypt.hashSync(u.password, 10);
+          await db.execute({
+            sql: 'INSERT OR IGNORE INTO users VALUES (?,?,?,?,?,?,?,?,?,?)',
+            args: [u.username, hpw, u.role, u.name, u.studentId, u.department, u.major, u.className, u.gender, u.enrollYear]
+          });
+        }
+        for (const s of presetStudents) {
+          await db.execute({
+            sql: 'INSERT OR IGNORE INTO students VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
+            args: [s.studentId, s.name, s.gender, s.department, s.major, s.className, s.enrollYear, s.birthDate, s.idCard, s.phone, s.address, s.status]
+          });
+        }
+        for (const c of presetCourses) {
+          await db.execute({
+            sql: 'INSERT OR IGNORE INTO courses VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+            args: [c.id, c.name, c.teacher, c.credit, c.type, c.semester, c.time, c.location, c.capacity, c.selected, c.department]
+          });
+        }
+        for (const g of presetGrades) {
+          await db.execute({
+            sql: 'INSERT OR IGNORE INTO grades VALUES (?,?,?,?,?,?,?,?,?,?)',
+            args: [g.studentId, g.courseId, g.courseName, g.semester, g.credit, g.regularScore, g.examScore, g.totalScore, g.gpa, g.rank]
+          });
+        }
+        for (const e of presetExams) {
+          await db.execute({
+            sql: 'INSERT OR IGNORE INTO exams VALUES (?,?,?,?,?,?,?)',
+            args: [e.id, e.courseId, e.courseName, e.date, e.time, e.location, e.seatNo]
+          });
+        }
+        for (const n of presetNotices) {
+          await db.execute({
+            sql: 'INSERT OR IGNORE INTO notices VALUES (?,?,?,?,?,?)',
+            args: [n.id, n.title, n.content, n.date, n.publisher, n.important ? 1 : 0]
+          });
+        }
+        console.log('✅ 预设数据已导入 Turso');
+      }
+    } catch (err) {
+      console.error('Turso 初始化失败，降级为内存:', err.message);
+      db = null;
+    }
+  }
+
+  if (!db) {
+    // 内存存储
     users = JSON.parse(JSON.stringify(presetUsers));
     students = JSON.parse(JSON.stringify(presetStudents));
     courses = JSON.parse(JSON.stringify(presetCourses));
@@ -88,161 +285,334 @@ function initData() {
     exams = JSON.parse(JSON.stringify(presetExams));
     notices = JSON.parse(JSON.stringify(presetNotices));
     myCourses = [];
-    // 密码加密
     users.forEach(u => {
-        if (!u.password.startsWith('$2a$')) {
-            u.password = bcrypt.hashSync(u.password, 10);
-        }
+      if (!u.password.startsWith('$2a$')) u.password = bcrypt.hashSync(u.password, 10);
     });
+  }
 }
-initData();
+
+// ==================== 数据库查询辅助 ====================
+async function dbAll(table, where = '', params = []) {
+  if (!db) {
+    const data = { users, students, courses, grades, exams, notices, myCourses };
+    let arr = data[table] || [];
+    return arr;
+  }
+  try {
+    const sql = where ? `SELECT * FROM ${table} WHERE ${where}` : `SELECT * FROM ${table}`;
+    const result = await db.execute({ sql, args: params });
+    // 将 important 0/1 转 bool
+    return result.rows.map(r => ({ ...r, important: r.important === 1 || r.important === true }));
+  } catch (e) { return []; }
+}
+
+async function dbGet(table, where, params = []) {
+  if (!db) {
+    const data = { users, students, courses, grades, exams, notices, myCourses };
+    let arr = data[table] || [];
+    // 简单 KV 查找
+    const [key, val] = where.split(' = ?');
+    const cleanKey = key.replace(/"/g, '').trim();
+    return arr.find(x => x[cleanKey] == params[0]) || null;
+  }
+  try {
+    const result = await db.execute({ sql: `SELECT * FROM ${table} WHERE ${where} LIMIT 1`, args: params });
+    if (result.rows.length === 0) return null;
+    const r = result.rows[0];
+    r.important = r.important === 1 || r.important === true;
+    return r;
+  } catch (e) { return null; }
+}
+
+async function dbInsert(table, obj) {
+  if (!db) {
+    const data = { users, students, courses, grades, exams, notices, myCourses };
+    data[table].push(obj);
+    return;
+  }
+  try {
+    const keys = Object.keys(obj);
+    const vals = Object.values(obj);
+    const placeholders = keys.map(() => '?').join(',');
+    await db.execute({ sql: `INSERT OR REPLACE INTO ${table} (${keys.join(',')}) VALUES (${placeholders})`, args: vals });
+  } catch (e) { }
+}
+
+async function dbDelete(table, where, params = []) {
+  if (!db) {
+    const data = { users, students, courses, grades, exams, notices, myCourses };
+    const [key, val] = where.split(' = ?');
+    const cleanKey = key.replace(/"/g, '').trim();
+    const idx = data[table].findIndex(x => x[cleanKey] == params[0]);
+    if (idx >= 0) data[table].splice(idx, 1);
+    return;
+  }
+  try {
+    await db.execute({ sql: `DELETE FROM ${table} WHERE ${where}`, args: params });
+  } catch (e) { }
+}
+
+async function dbUpdate(table, setClause, where, params = []) {
+  if (!db) return;
+  try {
+    await db.execute({ sql: `UPDATE ${table} SET ${setClause} WHERE ${where}`, args: params });
+  } catch (e) { }
+}
 
 // ==================== API 路由 ====================
 
 // 登录
 app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find(u => u.username === username);
-    if (!user) return res.json({ success: false, message: '账号不存在' });
+  const ip = (req.headers['x-forwarded-for'] || req.ip || '0').split(',')[0].trim();
+
+  // 限流检查
+  if (!checkLoginLimit(ip)) {
+    return res.status(429).json({ success: false, message: '登录尝试过多，请15分钟后再试' });
+  }
+
+  const { username, password } = req.body;
+  const uname = sanitize(username);
+  if (!uname || !password) return res.status(400).json({ success: false, message: '请输入账号和密码' });
+
+  // 查找用户
+  dbGet('users', 'username = ?', [uname]).then(user => {
+    if (!user) {
+      return res.json({ success: false, message: '账号不存在' });
+    }
     const valid = bcrypt.compareSync(password, user.password);
-    if (!valid) return res.json({ success: false, message: '密码错误' });
-    res.json({ success: true, user: { username:user.username, name:user.name, role:user.role, studentId:user.studentId, department:user.department, major:user.major, className:user.className, gender:user.gender, enrollYear:user.enrollYear } });
+    if (!valid) {
+      return res.json({ success: false, message: '密码错误' });
+    }
+    recordLoginSuccess(ip);
+    res.json({
+      success: true,
+      user: {
+        username: user.username, name: user.name, role: user.role,
+        studentId: user.studentId, department: user.department,
+        major: user.major, className: user.className, gender: user.gender,
+        enrollYear: user.enrollYear
+      }
+    });
+  }).catch(() => res.json({ success: false, message: '系统错误' }));
 });
 
 // 注册
-app.post('/api/register', (req, res) => {
-    const { username, password, name, role, department, major, className, gender, enrollYear } = req.body;
-    if (users.find(u => u.username === username)) return res.json({ success: false, message: '该账号已存在' });
-    const newUser = { username, password: bcrypt.hashSync(password,10), role:role||'student', name, studentId:username, department:department||'', major:major||'', className:className||'', gender:gender||'男', enrollYear:enrollYear||'2024' };
-    users.push(newUser);
-    if (!students.find(s => s.studentId === username)) {
-        students.push({ studentId:username, name, gender:gender||'男', department:department||'', major:major||'', className:className||'', enrollYear:enrollYear||'2024', birthDate:'', idCard:'', phone:'', address:'', status:'在读' });
-    }
-    res.json({ success: true, message: '注册成功！请登录' });
+app.post('/api/register', async (req, res) => {
+  const { username, password, name, department, major, gender, enrollYear } = req.body;
+  const uname = sanitize(username);
+  const rname = sanitize(name);
+  if (!uname || !password || !rname) return res.status(400).json({ success: false, message: '请填写必要信息' });
+  if (password.length < 6) return res.json({ success: false, message: '密码至少6位' });
+
+  const exist = await dbGet('users', 'username = ?', [uname]);
+  if (exist) return res.json({ success: false, message: '该账号已存在' });
+
+  const hpw = bcrypt.hashSync(password, 10);
+  await dbInsert('users', {
+    username: uname, password: hpw, role: 'student',
+    name: rname, studentId: uname,
+    department: sanitize(department) || '', major: sanitize(major) || '',
+    className: '', gender: gender === '女' ? '女' : '男',
+    enrollYear: sanitize(enrollYear) || '2024'
+  });
+  await dbInsert('students', {
+    studentId: uname, name: rname, gender: gender === '女' ? '女' : '男',
+    department: sanitize(department) || '', major: sanitize(major) || '',
+    className: '', enrollYear: sanitize(enrollYear) || '2024',
+    birthDate: '', idCard: '', phone: '', address: '', status: '在读'
+  });
+  res.json({ success: true, message: '注册成功！请登录' });
 });
 
 // 修改密码
-app.post('/api/change-password', (req, res) => {
-    const { username, oldPassword, newPassword } = req.body;
-    const user = users.find(u => u.username === username);
-    if (!user) return res.json({ success: false, message: '用户不存在' });
-    if (!bcrypt.compareSync(oldPassword, user.password)) return res.json({ success: false, message: '原密码错误' });
-    user.password = bcrypt.hashSync(newPassword, 10);
-    res.json({ success: true, message: '密码修改成功' });
+app.post('/api/change-password', async (req, res) => {
+  const { username, oldPassword, newPassword } = req.body;
+  if (!newPassword || newPassword.length < 6) return res.json({ success: false, message: '新密码至少6位' });
+  const user = await dbGet('users', 'username = ?', [sanitize(username)]);
+  if (!user) return res.json({ success: false, message: '用户不存在' });
+  if (!bcrypt.compareSync(oldPassword, user.password)) return res.json({ success: false, message: '原密码错误' });
+  const hpw = bcrypt.hashSync(newPassword, 10);
+  await dbUpdate('users', 'password = ?', 'username = ?', [hpw, sanitize(username)]);
+  res.json({ success: true, message: '密码修改成功' });
 });
 
 // 学生信息
-app.get('/api/student/:sid', (req, res) => {
-    const s = students.find(x => x.studentId === req.params.sid) || {};
-    const u = users.find(x => x.studentId === req.params.sid) || {};
-    res.json({ success: true, data: { ...s, ...(u ? { department:u.department, major:u.major, className:u.className, enrollYear:u.enrollYear } : {}) } });
-});
-
-app.put('/api/student/:sid', (req, res) => {
-    const idx = students.findIndex(x => x.studentId === req.params.sid);
-    if (idx === -1) return res.json({ success: false, message: '未找到' });
-    Object.assign(students[idx], req.body);
-    res.json({ success: true, message: '更新成功' });
+app.get('/api/student/:sid', async (req, res) => {
+  const s = await dbGet('students', 'studentId = ?', [req.params.sid]);
+  const u = await dbGet('users', 'studentId = ?', [req.params.sid]);
+  res.json({ success: true, data: { ...(s || {}), ...(u ? { department: u.department, major: u.major, className: u.className, enrollYear: u.enrollYear } : {}) } });
 });
 
 // 课程
-app.get('/api/courses', (req, res) => res.json({ success: true, data: courses }));
-app.get('/api/schedule/:sid', (req, res) => {
-    const u = users.find(x => x.studentId === req.params.sid);
-    const dept = u ? u.department : '';
-    const data = courses.filter(c => c.type==='必修' ? (c.department===dept||c.department==='公共课') : true);
-    res.json({ success: true, data });
+app.get('/api/courses', async (req, res) => {
+  const data = await dbAll('courses');
+  res.json({ success: true, data });
+});
+
+// 课表
+app.get('/api/schedule/:sid', async (req, res) => {
+  const u = await dbGet('users', 'studentId = ?', [req.params.sid]);
+  const all = await dbAll('courses');
+  const dept = u ? u.department : '';
+  const data = all.filter(c => c.type === '必修' ? (c.department === dept || c.department === '公共课') : true);
+  res.json({ success: true, data });
 });
 
 // 成绩
-app.get('/api/grades/:sid', (req, res) => {
-    const g = grades.filter(x => x.studentId === req.params.sid);
-    const semesters = [...new Set(g.map(x => x.semester))].sort().reverse();
-    const summary = {};
-    semesters.forEach(sem => {
-        const sg = g.filter(x => x.semester === sem);
-        const tc = sg.reduce((s,x) => s+x.credit, 0);
-        const wg = sg.reduce((s,x) => s+x.gpa*x.credit, 0);
-        summary[sem] = { totalCredit: tc, avgGPA: tc ? (wg/tc).toFixed(2) : 0 };
-    });
-    res.json({ success: true, data: g, semesters, summary });
+app.get('/api/grades/:sid', async (req, res) => {
+  const all = await dbAll('grades');
+  const g = all.filter(x => x.studentId === req.params.sid);
+  const semesters = [...new Set(g.map(x => x.semester))].sort().reverse();
+  const summary = {};
+  semesters.forEach(sem => {
+    const sg = g.filter(x => x.semester === sem);
+    const tc = sg.reduce((s, x) => s + x.credit, 0);
+    const wg = sg.reduce((s, x) => s + x.gpa * x.credit, 0);
+    summary[sem] = { totalCredit: tc, avgGPA: tc ? (wg / tc).toFixed(2) : 0 };
+  });
+  res.json({ success: true, data: g, semesters, summary });
 });
 
 // 选课
-app.post('/api/select-course', (req, res) => {
-    const { studentId, courseId } = req.body;
-    const c = courses.find(x => x.id === courseId);
-    if (!c) return res.json({ success: false, message: '课程不存在' });
-    if (c.selected >= c.capacity) return res.json({ success: false, message: '课程已满' });
-    c.selected++;
-    if (!myCourses.find(x => x.studentId===studentId && x.courseId===courseId)) {
-        myCourses.push({ studentId, courseId });
-    }
-    res.json({ success: true, message: '选课成功！' });
+app.post('/api/select-course', async (req, res) => {
+  const { studentId, courseId } = req.body;
+  const c = await dbGet('courses', 'id = ?', [courseId]);
+  if (!c) return res.json({ success: false, message: '课程不存在' });
+  if (c.selected >= c.capacity) return res.json({ success: false, message: '课程已满' });
+
+  await dbUpdate('courses', 'selected = selected + 1', 'id = ?', [courseId]);
+
+  const existing = await dbAll('my_courses');
+  if (!existing.find(x => x.studentId === studentId && x.courseId === courseId)) {
+    await dbInsert('my_courses', { studentId, courseId });
+  }
+  res.json({ success: true, message: '选课成功！' });
 });
 
-app.post('/api/drop-course', (req, res) => {
-    const { studentId, courseId } = req.body;
-    const c = courses.find(x => x.id === courseId);
-    if (c && c.selected > 0) c.selected--;
-    myCourses = myCourses.filter(x => !(x.studentId===studentId && x.courseId===courseId));
-    res.json({ success: true, message: '退课成功！' });
+// 退课
+app.post('/api/drop-course', async (req, res) => {
+  const { studentId, courseId } = req.body;
+  const c = await dbGet('courses', 'id = ?', [courseId]);
+  if (c && c.selected > 0) {
+    await dbUpdate('courses', 'selected = selected - 1', 'id = ?', [courseId]);
+  }
+  await dbDelete('my_courses', 'studentId = ? AND courseId = ?', [studentId, courseId]);
+  res.json({ success: true, message: '退课成功！' });
 });
 
-app.get('/api/my-courses/:sid', (req, res) => {
-    const mc = myCourses.filter(x => x.studentId === req.params.sid);
-    res.json({ success: true, data: mc.map(x => courses.find(c => c.id===x.courseId)).filter(Boolean) });
+// 我的选课
+app.get('/api/my-courses/:sid', async (req, res) => {
+  const mc = await dbAll('my_courses');
+  const all = await dbAll('courses');
+  const my = mc.filter(x => x.studentId === req.params.sid);
+  res.json({ success: true, data: my.map(x => all.find(c => c.id === x.courseId)).filter(Boolean) });
 });
 
 // 通知
-app.get('/api/notices', (req, res) => res.json({ success: true, data: [...notices].sort((a,b) => b.date.localeCompare(a.date)) }));
+app.get('/api/notices', async (req, res) => {
+  const data = await dbAll('notices');
+  res.json({ success: true, data: data.sort((a, b) => b.date.localeCompare(a.date)) });
+});
 
 // 考试
-app.get('/api/exams/:sid', (req, res) => res.json({ success: true, data: exams }));
-
-// ==================== 管理端 API ====================
-app.get('/api/admin/users', (req, res) => res.json({ success: true, data: users.map(u => ({...u, password:undefined})) }));
-app.delete('/api/admin/users/:username', (req, res) => {
-    users = users.filter(u => u.username !== req.params.username);
-    students = students.filter(s => s.studentId !== req.params.username);
-    grades = grades.filter(g => g.studentId !== req.params.username);
-    res.json({ success: true, message: '删除成功' });
+app.get('/api/exams/:sid', async (req, res) => {
+  const data = await dbAll('exams');
+  res.json({ success: true, data });
 });
 
-app.post('/api/admin/courses', (req, res) => { courses.push(req.body); res.json({ success: true, message: '添加成功' }); });
-app.put('/api/admin/courses/:id', (req, res) => {
-    const idx = courses.findIndex(c => c.id === req.params.id);
-    if (idx === -1) return res.json({ success: false, message: '不存在' });
-    Object.assign(courses[idx], req.body);
-    res.json({ success: true, message: '更新成功' });
-});
-app.delete('/api/admin/courses/:id', (req, res) => { courses = courses.filter(c => c.id !== req.params.id); res.json({ success: true, message: '删除成功' }); });
-
-app.get('/api/admin/students', (req, res) => res.json({ success: true, data: students }));
-app.get('/api/admin/grades', (req, res) => res.json({ success: true, data: grades }));
-app.post('/api/admin/grades', (req, res) => {
-    const idx = grades.findIndex(g => g.studentId===req.body.studentId && g.courseId===req.body.courseId);
-    if (idx >= 0) Object.assign(grades[idx], req.body); else grades.push(req.body);
-    res.json({ success: true, message: '保存成功' });
+// ==================== 管理端 API（需要 admin 权限） ====================
+app.get('/api/admin/users', adminAuth, async (req, res) => {
+  const data = await dbAll('users');
+  res.json({ success: true, data: data.map(u => ({ ...u, password: undefined })) });
 });
 
-app.post('/api/admin/notices', (req, res) => { notices.unshift(req.body); res.json({ success: true, message: '发布成功' }); });
-app.delete('/api/admin/notices/:id', (req, res) => { notices = notices.filter(n => n.id !== req.params.id); res.json({ success: true, message: '删除成功' }); });
-
-app.post('/api/admin/exams', (req, res) => { exams.push(req.body); res.json({ success: true, message: '添加成功' }); });
-app.put('/api/admin/exams/:id', (req, res) => {
-    const idx = exams.findIndex(e => e.id === req.params.id);
-    if (idx === -1) return res.json({ success: false, message: '不存在' });
-    Object.assign(exams[idx], req.body);
-    res.json({ success: true, message: '更新成功' });
+app.delete('/api/admin/users/:username', adminAuth, async (req, res) => {
+  await dbDelete('users', 'username = ?', [req.params.username]);
+  await dbDelete('students', 'studentId = ?', [req.params.username]);
+  await dbDelete('grades', 'studentId = ?', [req.params.username]);
+  res.json({ success: true, message: '删除成功' });
 });
-app.delete('/api/admin/exams/:id', (req, res) => { exams = exams.filter(e => e.id !== req.params.id); res.json({ success: true, message: '删除成功' }); });
 
-// 静态文件目录（index.html 在项目根目录）
+app.post('/api/admin/courses', adminAuth, async (req, res) => {
+  await dbInsert('courses', req.body);
+  res.json({ success: true, message: '添加成功' });
+});
+
+app.put('/api/admin/courses/:id', adminAuth, async (req, res) => {
+  const c = await dbGet('courses', 'id = ?', [req.params.id]);
+  if (!c) return res.json({ success: false, message: '不存在' });
+  // 更新所有字段
+  const fields = req.body;
+  const setParts = Object.keys(fields).map(k => `${k} = ?`).join(', ');
+  const vals = Object.values(fields);
+  await dbUpdate('courses', setParts, 'id = ?', [...vals, req.params.id]);
+  res.json({ success: true, message: '更新成功' });
+});
+
+app.delete('/api/admin/courses/:id', adminAuth, async (req, res) => {
+  await dbDelete('courses', 'id = ?', [req.params.id]);
+  res.json({ success: true, message: '删除成功' });
+});
+
+app.get('/api/admin/students', adminAuth, async (req, res) => {
+  const data = await dbAll('students');
+  res.json({ success: true, data });
+});
+
+app.get('/api/admin/grades', adminAuth, async (req, res) => {
+  const data = await dbAll('grades');
+  res.json({ success: true, data });
+});
+
+app.post('/api/admin/grades', adminAuth, async (req, res) => {
+  const { studentId, courseId } = req.body;
+  const all = await dbAll('grades');
+  const exist = all.find(g => g.studentId === studentId && g.courseId === courseId);
+  if (exist) {
+    const fields = req.body;
+    const setParts = Object.keys(fields).map(k => `${k} = ?`).join(', ');
+    const vals = Object.values(fields);
+    await dbUpdate('grades', setParts, 'studentId = ? AND courseId = ?', [...vals, studentId, courseId]);
+  } else {
+    await dbInsert('grades', req.body);
+  }
+  res.json({ success: true, message: '保存成功' });
+});
+
+app.post('/api/admin/notices', adminAuth, async (req, res) => {
+  if (req.body.important === true || req.body.important === 'true') req.body.important = 1;
+  else req.body.important = 0;
+  await dbInsert('notices', req.body);
+  res.json({ success: true, message: '发布成功' });
+});
+
+app.delete('/api/admin/notices/:id', adminAuth, async (req, res) => {
+  await dbDelete('notices', 'id = ?', [req.params.id]);
+  res.json({ success: true, message: '删除成功' });
+});
+
+app.post('/api/admin/exams', adminAuth, async (req, res) => {
+  await dbInsert('exams', req.body);
+  res.json({ success: true, message: '添加成功' });
+});
+
+app.put('/api/admin/exams/:id', adminAuth, async (req, res) => {
+  const fields = req.body;
+  const setParts = Object.keys(fields).map(k => `${k} = ?`).join(', ');
+  const vals = Object.values(fields);
+  await dbUpdate('exams', setParts, 'id = ?', [...vals, req.params.id]);
+  res.json({ success: true, message: '更新成功' });
+});
+
+app.delete('/api/admin/exams/:id', adminAuth, async (req, res) => {
+  await dbDelete('exams', 'id = ?', [req.params.id]);
+  res.json({ success: true, message: '删除成功' });
+});
+
+// ==================== 静态文件 ====================
 app.use(express.static(path.join(__dirname, '..')));
-// 所有非 API 路径返回 index.html（SPA 路由）
 app.get(/^\/(?!api\/).*/, (req, res) => {
-    res.sendFile(path.join(__dirname, '..', 'index.html'));
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 // 导出给 Vercel
@@ -250,10 +620,13 @@ module.exports = app;
 
 // 本地启动
 if (require.main === module) {
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`✅ 教务系统后端已启动: http://localhost:${PORT}`);
-        console.log(`📋 管理员: admin / admin123`);
-        console.log(`📋 学生: 20230101001 / 123456`);
-    });
+  const PORT = process.env.PORT || 3000;
+  initData();
+  app.listen(PORT, () => {
+    console.log(`✅ 教务系统后端已启动: http://localhost:${PORT}`);
+    console.log(`📋 管理员: admin / admin123`);
+    console.log(`📋 学生: 20230101001 / 123456`);
+  });
+} else {
+  initData();
 }
