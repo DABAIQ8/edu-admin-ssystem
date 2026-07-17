@@ -313,7 +313,7 @@ app.post('/api/login', (req, res) => {
 
 // 注册
 app.post('/api/register', (req, res) => {
-  const { username, password, name, department, major, gender, enrollYear } = req.body;
+  const { username, password, name, department, major, gender, enrollYear, email } = req.body;
   const uname = sanitize(username);
   const rname = sanitize(name);
   if (!uname || !password || !rname) return res.status(400).json({ success: false, message: '请填写必要信息' });
@@ -325,7 +325,7 @@ app.post('/api/register', (req, res) => {
     name: rname, studentId: uname,
     department: sanitize(department) || '', major: sanitize(major) || '',
     className: '', gender: gender === '女' ? '女' : '男',
-    enrollYear: sanitize(enrollYear) || '2024'
+    enrollYear: sanitize(enrollYear) || '2024', email: sanitize(email) || ''
   });
   students.push({
     studentId: uname, name: rname, gender: gender === '女' ? '女' : '男',

@@ -756,7 +756,7 @@
         <!-- 顶部工具栏 -->
         <div class="top-bar">
             <div class="container">
-                <span><i class="fa fa-phone"></i> 招生热线：0712-2345919</span>
+                <span><i class="fa fa-phone"></i> 招生热线：0712-2345919 <span id="onlineStats" style="margin-left:16px;"></span></span>
                 <span>
                     <a href="#"><i class="fa fa-envelope"></i> 院长信箱</a>
                     <a href="#"><i class="fa fa-envelope"></i> 书记信箱</a>
@@ -808,6 +808,8 @@
                 <a href="#about">学校概况</a>
                 <a href="#news">新闻中心</a>
                 <a href="#notice">通知公告</a>
+                <a href="#messages">留言专区</a>
+                <a href="#donate">支持我们</a>
                 <a href="javascript:showLoginModal()">教务系统</a>
                 <a href="#contact">联系方式</a>
             </div>
@@ -1032,6 +1034,41 @@
                 </div>
             </div>
         </footer>
+
+        <!-- 留言专区 -->
+        <div class="section" id="messages" style="background:var(--white);">
+            <div class="container">
+                <div class="section-title"><h2>💬 留言专区</h2><p>有什么想说的，在这里留下你的声音</p></div>
+                <div class="card" style="max-width:800px;margin:0 auto;">
+                    <div style="margin-bottom:16px;display:flex;gap:10px;">
+                        <input type="text" id="messageInput" placeholder="输入留言内容（最多500字）" maxlength="500" style="flex:1;height:44px;padding:0 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;outline:none;">
+                        <button class="btn btn-login" onclick="submitMessage()" style="white-space:nowrap;"><i class="fa fa-paper-plane"></i> 发送</button>
+                    </div>
+                    <div id="messageList" style="max-height:300px;overflow-y:auto;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 打赏支持 -->
+        <div class="section" id="donate" style="background:#fafafa;">
+            <div class="container">
+                <div class="section-title"><h2>❤️ 支持我们</h2><p>如果觉得这个系统对您有帮助，欢迎打赏支持</p></div>
+                <div style="max-width:500px;margin:0 auto;text-align:center;">
+                    <div style="background:var(--white);border-radius:var(--radius-lg);padding:32px;box-shadow:var(--shadow);">
+                        <p style="margin-bottom:16px;color:var(--text-light);">请使用微信/支付宝扫描下方二维码</p>
+                        <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
+                            <div id="donateWechat" style="display:none;">
+                                <div style="width:200px;height:200px;background:#eee;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:13px;color:#999;">微信收款码<br>(管理员设置后可显示)</div>
+                            </div>
+                            <div id="donateAlipay" style="display:none;">
+                                <div style="width:200px;height:200px;background:#eee;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:13px;color:#999;">支付宝收款码<br>(管理员设置后可显示)</div>
+                            </div>
+                        </div>
+                        <p style="margin-top:16px;color:var(--gold);font-weight:600;" id="donateMsg">感谢您的支持！</p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ======================== 教务系统模式 ======================== -->
@@ -1197,6 +1234,7 @@
                         <div class="login-tabs">
                             <div class="tab active" onclick="switchLoginTab('login')">登 录</div>
                             <div class="tab" onclick="switchLoginTab('register')">注 册</div>
+                            <div class="tab" onclick="switchLoginTab('reset')">找回密码</div>
                         </div>
                         <div id="loginMsg"></div>
                         <form id="loginFormModal" onsubmit="handleLoginModal(event)">
@@ -1205,11 +1243,18 @@
                             <button type="submit" class="btn-submit" id="loginBtnModal">登 录</button>
                         </form>
                         <form id="registerFormModal" style="display:none;" onsubmit="handleRegisterModal(event)">
-                            <div class="form-group"><label>学号 *</label><input type="text" id="regSid" placeholder="请输入学号" required></div>
-                            <div class="form-group"><label>姓名 *</label><input type="text" id="regName" placeholder="请输入真实姓名" required></div>
-                            <div class="form-group"><label>密码 *</label><input type="password" id="regPwd" placeholder="至少6位" minlength="6" required></div>
+                            <div class="form-row"><div class="form-group"><label>学号 *</label><input type="text" id="regSid" placeholder="请输入学号" required></div><div class="form-group"><label>姓名 *</label><input type="text" id="regName" placeholder="请输入真实姓名" required></div></div>
+                            <div class="form-row"><div class="form-group"><label>密码 *</label><input type="password" id="regPwd" placeholder="至少6位" minlength="6" required></div><div class="form-group"><label>邮箱</label><input type="email" id="regEmail" placeholder="用于找回密码"></div></div>
                             <div class="form-row"><div class="form-group"><label>性别</label><select id="regGender"><option>男</option><option>女</option></select></div><div class="form-group"><label>院系</label><input type="text" id="regDept" placeholder="如：信息工程学院"></div></div>
                             <button type="submit" class="btn-submit">注 册</button>
+                        </form>
+                        <form id="resetFormModal" style="display:none;" onsubmit="handleForgotPassword(event)">
+                            <p style="font-size:12px;color:var(--text-light);margin-bottom:12px;">通过绑定的邮箱接收验证码来重置密码</p>
+                            <div class="form-group"><label>账号</label><input type="text" id="resetUsername" placeholder="请输入学号" required></div>
+                            <div class="form-group"><label>绑定邮箱</label><input type="email" id="resetEmail" placeholder="请输入绑定的邮箱" required></div>
+                            <div style="display:flex;gap:8px;"><div class="form-group" style="flex:1;"><label>验证码</label><input type="text" id="resetCode" placeholder="6位验证码" required></div><button type="button" class="btn btn-outline btn-sm" style="height:44px;margin-top:22px;" onclick="sendResetCode()">发送验证码</button></div>
+                            <div class="form-group"><label>新密码</label><input type="password" id="resetNewPwd" placeholder="至少6位" minlength="6" required></div>
+                            <button type="submit" class="btn-submit">重置密码</button>
                         </form>
                     </div>
                 </div>
@@ -1219,10 +1264,37 @@
 
     function closeLoginModal() { document.getElementById('loginModalContainer').innerHTML = ''; }
     function switchLoginTab(t) {
-        document.querySelectorAll('.login-tabs .tab').forEach((el,i) => el.classList.toggle('active', (t==='login'&&i===0)||(t==='register'&&i===1)));
+        document.querySelectorAll('.login-tabs .tab').forEach((el,i) => el.classList.toggle('active', (t==='login'&&i===0)||(t==='register'&&i===1)||(t==='reset'&&i===2)));
         document.getElementById('loginFormModal').style.display = t==='login'?'block':'none';
         document.getElementById('registerFormModal').style.display = t==='register'?'block':'none';
+        document.getElementById('resetFormModal').style.display = t==='reset'?'block':'none';
         document.getElementById('loginMsg').innerHTML = '';
+    }
+
+    async function sendResetCode() {
+        const username = document.getElementById('resetUsername').value.trim();
+        const email = document.getElementById('resetEmail').value.trim();
+        if (!username || !email) { toast('请填写账号和邮箱','error'); return; }
+        try {
+            const res = await fetch(API_BASE+'/api/send-code',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,username,type:'reset'})});
+            const data = await res.json();
+            document.getElementById('loginMsg').innerHTML = `<div class="alert ${data.success?'alert-success':'alert-error'}">${data.message}</div>`;
+        } catch(e){ document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">发送失败</div>'; }
+    }
+
+    async function handleForgotPassword(e) {
+        e.preventDefault();
+        const username = document.getElementById('resetUsername').value.trim();
+        const email = document.getElementById('resetEmail').value.trim();
+        const code = document.getElementById('resetCode').value.trim();
+        const newPwd = document.getElementById('resetNewPwd').value;
+        if (newPwd.length < 6) { document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">新密码至少6位</div>'; return; }
+        try {
+            const res = await fetch(API_BASE+'/api/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,email,code,newPassword:newPwd})});
+            const data = await res.json();
+            if (data.success) { toast('密码重置成功！','success'); switchLoginTab('login'); document.getElementById('loginUserModal').value = username; }
+            else document.getElementById('loginMsg').innerHTML = `<div class="alert alert-error">${data.message}</div>`;
+        } catch(e){ document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">重置失败</div>'; }
     }
 
     async function handleLoginModal(e) {
@@ -1254,6 +1326,7 @@
         e.preventDefault();
         const pwd = document.getElementById('regPwd').value;
         if (pwd.length < 6) { document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">密码至少6位</div>'; return; }
+        const email = document.getElementById('regEmail').value.trim();
         try {
             const res = await fetch(API_BASE + '/api/register', {
                 method:'POST', headers:{'Content-Type':'application/json'},
@@ -1263,11 +1336,17 @@
                     name:document.getElementById('regName').value.trim(),
                     gender:document.getElementById('regGender').value,
                     department:document.getElementById('regDept').value.trim(),
-                    role:'student',enrollYear:'2024'
+                    role:'student',enrollYear:'2024', email
                 })
             });
             const data = await res.json();
             if (data.success) {
+                // 注册成功后自动绑定邮箱
+                if (email) {
+                    const user = data.user || { username: document.getElementById('regSid').value.trim() };
+                    const u = findOne(users, 'username', user.username);
+                    // 邮箱已通过注册表单传入，在后端存储
+                }
                 toast('注册成功！请登录', 'success');
                 switchLoginTab('login');
                 document.getElementById('loginUserModal').value = document.getElementById('regSid').value.trim();
@@ -1348,6 +1427,55 @@
                 `).join('');
             }
         } catch (e) {}
+        loadOnlineStats();
+        loadMessageBoard();
+    }
+
+    async function loadOnlineStats() {
+        try {
+            const [onlineRes, statsRes] = await Promise.all([
+                fetch(API_BASE + '/api/online'),
+                fetch(API_BASE + '/api/user-stats')
+            ]);
+            const online = (await onlineRes.json()).data || {};
+            const stats = (await statsRes.json()).data || {};
+            const el = document.getElementById('onlineStats');
+            if (el) el.innerHTML = `<i class="fa fa-circle" style="color:#27ae60;font-size:8px;margin-right:4px;animation:blink 1.5s infinite;"></i> 在线 ${online.count||0} 人 | 注册学生 ${stats.totalStudents||0} 人 <style>@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }</style>`;
+        } catch(e){}
+    }
+
+    async function loadMessageBoard() {
+        try {
+            const res = await fetch(API_BASE + '/api/messages');
+            const data = await res.json();
+            const list = data.data || [];
+            const el = document.getElementById('messageList');
+            if (el && list.length > 0) {
+                el.innerHTML = list.slice(0, 6).map(m => `
+                    <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+                        <strong>${m.userName}</strong> <span style="color:#999;font-size:11px;">${m.time.split('T')[0]}</span>
+                        <p style="margin-top:4px;color:#666;">${m.content}</p>
+                    </div>
+                `).join('');
+            } else if (el) {
+                el.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">还没有留言，来说点什么吧~</p>';
+            }
+        } catch(e){}
+    }
+
+    async function submitMessage() {
+        if (!currentUser) { toast('请先登录再留言', 'error'); showLoginModal(); return; }
+        const inp = document.getElementById('messageInput');
+        if (!inp || !inp.value.trim()) return;
+        try {
+            const res = await fetch(API_BASE + '/api/messages', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({content:inp.value.trim(), userId:currentUser.username, userName:currentUser.name})
+            });
+            const data = await res.json();
+            toast(data.message||'留言成功', data.success?'success':'error');
+            if (data.success) { inp.value = ''; loadMessageBoard(); }
+        } catch(e) { toast('留言失败','error'); }
     }
 
     // ==================== 教务系统 ====================
