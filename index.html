@@ -753,15 +753,10 @@
 <body>
     <!-- ======================== 门户首页 ======================== -->
     <div class="portal-mode">
-        <!-- 顶部工具栏 -->
-        <div class="top-bar">
+        <!-- 顶部工具栏（已精简：仅在线统计） -->
+        <div class="top-bar" style="display:none;">
             <div class="container">
-                <span><i class="fa fa-phone"></i> 招生热线：18695085845 <span id="onlineStats" style="margin-left:16px;"></span></span>
-                <span>
-                    <a href="#"><i class="fa fa-envelope"></i> 院长信箱</a>
-                    <a href="#"><i class="fa fa-envelope"></i> 书记信箱</a>
-                    <a href="#"><i class="fa fa-sitemap"></i> 网站地图</a>
-                </span>
+                <span id="onlineStats"></span>
             </div>
         </div>
 
@@ -952,17 +947,18 @@
             </div>
         </footer>
 
-        <!-- 留言专区 -->
-        <div class="section" id="messages" style="background:var(--white);">
-            <div class="container">
-                <div class="section-title"><h2>💬 留言专区</h2><p>有什么想说的，在这里留下你的声音</p></div>
-                <div class="card" style="max-width:800px;margin:0 auto;">
-                    <div style="margin-bottom:16px;display:flex;gap:10px;">
-                        <input type="text" id="messageInput" placeholder="输入留言内容（最多500字）" maxlength="500" style="flex:1;height:44px;padding:0 14px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;outline:none;">
-                        <button class="btn btn-login" onclick="submitMessage()" style="white-space:nowrap;"><i class="fa fa-paper-plane"></i> 发送</button>
-                    </div>
-                    <div id="messageList" style="max-height:300px;overflow-y:auto;"></div>
-                </div>
+        <!-- 留言侧边按钮 -->
+        <div id="messageSideBtn" style="position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:999;background:var(--primary);color:#fff;padding:12px 10px;border-radius:8px 0 0 8px;cursor:pointer;font-size:13px;writing-mode:vertical-rl;letter-spacing:4px;box-shadow:-2px 0 12px rgba(0,0,0,0.15);" onclick="toggleMessagePanel()" title="留言板">💬 留言</div>
+        <!-- 留言面板（侧边滑出） -->
+        <div id="messagePanel" style="position:fixed;right:-420px;top:0;width:400px;max-width:90vw;height:100vh;background:#fff;z-index:1000;box-shadow:-4px 0 20px rgba(0,0,0,0.15);transition:right 0.3s ease;display:flex;flex-direction:column;">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:2px solid var(--primary);">
+                <h3 style="font-size:16px;color:var(--primary);">💬 留言专区</h3>
+                <button onclick="toggleMessagePanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:#999;">&times;</button>
+            </div>
+            <div style="flex:1;overflow-y:auto;padding:16px;" id="messagePanelList"></div>
+            <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+                <input type="text" id="messagePanelInput" placeholder="说点什么..." maxlength="500" style="flex:1;height:40px;padding:0 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;outline:none;">
+                <button class="btn btn-primary btn-sm" onclick="submitPanelMessage()" style="white-space:nowrap;">发送</button>
             </div>
         </div>
 
@@ -1151,6 +1147,7 @@
 
     // ==================== 登录弹窗 ====================
     function showLoginModal() {
+        // 弹出登录窗口，登录成功后自动跳转教务系统
         document.getElementById('loginModalContainer').innerHTML = `
             <div class="modal-overlay" onclick="closeLoginModal()">
                 <div class="login-modal" onclick="event.stopPropagation()" style="position:relative;">
@@ -1244,6 +1241,8 @@
                 updateHeaderUI();
                 closeLoginModal();
                 toast('登录成功！欢迎，' + currentUser.name, 'success');
+                // 登录成功后自动跳转到教务系统
+                setTimeout(() => enterJiaowu(), 500);
             } else {
                 document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">' + (data.message||'登录失败') + '</div>';
             }
@@ -1433,6 +1432,21 @@
             const res = await fetch(API_BASE + '/api/messages');
             const data = await res.json();
             const list = data.data || [];
+            // 更新侧边面板
+            const pel = document.getElementById('messagePanelList');
+            if (pel) {
+                if (list.length > 0) {
+                    pel.innerHTML = list.map(m => `
+                        <div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;">
+                            <strong>${m.userName}</strong> <span style="color:#999;font-size:11px;">${m.time.split('T')[0]}</span>
+                            <p style="margin-top:4px;color:#666;">${m.content}</p>
+                        </div>
+                    `).join('');
+                } else {
+                    pel.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">还没有留言，来说点什么吧~</p>';
+                }
+            }
+            // 兼容旧的留言区域
             const el = document.getElementById('messageList');
             if (el && list.length > 0) {
                 el.innerHTML = list.slice(0, 6).map(m => `
@@ -1447,7 +1461,33 @@
         } catch(e){}
     }
 
+    function toggleMessagePanel() {
+        const panel = document.getElementById('messagePanel');
+        if (panel.style.right === '0px') {
+            panel.style.right = '-420px';
+        } else {
+            panel.style.right = '0px';
+            loadMessageBoard();
+        }
+    }
+
+    async function submitPanelMessage() {
+        if (!currentUser) { toast('请先登录再留言', 'error'); showLoginModal(); return; }
+        const inp = document.getElementById('messagePanelInput');
+        if (!inp || !inp.value.trim()) return;
+        try {
+            const res = await fetch(API_BASE + '/api/messages', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({content:inp.value.trim(), userId:currentUser.username, userName:currentUser.name})
+            });
+            const data = await res.json();
+            toast(data.message||'留言成功', data.success?'success':'error');
+            if (data.success) { inp.value = ''; loadMessageBoard(); }
+        } catch(e) { toast('留言失败','error'); }
+    }
+
     async function submitMessage() {
+        // 兼容旧的留言区域调用
         if (!currentUser) { toast('请先登录再留言', 'error'); showLoginModal(); return; }
         const inp = document.getElementById('messageInput');
         if (!inp || !inp.value.trim()) return;
