@@ -238,8 +238,12 @@ app.put('/api/admin/exams/:id', (req, res) => {
 });
 app.delete('/api/admin/exams/:id', (req, res) => { exams = exams.filter(e => e.id !== req.params.id); res.json({ success: true, message: '删除成功' }); });
 
-// 静态文件
+// 静态文件目录（index.html 在项目根目录）
 app.use(express.static(path.join(__dirname, '..')));
+// 所有非 API 路径返回 index.html（SPA 路由）
+app.get(/^\/(?!api\/).*/, (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
 
 // 导出给 Vercel
 module.exports = app;
