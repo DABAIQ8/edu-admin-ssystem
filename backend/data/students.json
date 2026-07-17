@@ -1,7 +1,0 @@
-[
-  {"studentId":"20230101001","name":"张三","gender":"男","department":"信息工程学院","major":"计算机科学与技术","className":"计科2301班","enrollYear":"2023","birthDate":"2005-03-15","idCard":"42090220050315****","phone":"138****6789","address":"湖北省孝感市","status":"在读"},
-  {"studentId":"20230101002","name":"李四","gender":"女","department":"信息工程学院","major":"软件工程","className":"软工2301班","enrollYear":"2023","birthDate":"2005-07-22","idCard":"42090220050722****","phone":"139****8901","address":"湖北省武汉市","status":"在读"},
-  {"studentId":"20220102001","name":"王五","gender":"男","department":"经济与管理学院","major":"工商管理","className":"工商2201班","enrollYear":"2022","birthDate":"2004-11-08","idCard":"42090220041108****","phone":"137****1234","address":"湖北省宜昌市","status":"在读"},
-  {"studentId":"20230103001","name":"赵六","gender":"女","department":"文学与新闻传播学院","major":"汉语言文学","className":"汉语言2301班","enrollYear":"2023","birthDate":"2005-01-30","idCard":"42090220050130****","phone":"136****4567","address":"湖北省荆州市","status":"在读"},
-  {"studentId":"20220103002","name":"孙七","gender":"女","department":"外国语学院","major":"英语","className":"英语2201班","enrollYear":"2022","birthDate":"2004-06-14","idCard":"42090220040614****","phone":"135****7890","address":"湖北省黄石市","status":"在读"}
-]
