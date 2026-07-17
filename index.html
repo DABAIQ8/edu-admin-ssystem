@@ -1109,6 +1109,20 @@
                 <div class="page-header"><h2>📢 学校通知</h2></div>
                 <div class="card"><div class="notice-list" id="noticesList"></div></div>
             </section>
+            <section class="page-section" id="page-adminDashboard">
+                <div class="page-header"><h2>📊 管理仪表盘</h2></div>
+                <div class="stat-grid" id="dashboardStats"></div>
+                <div style="display:grid;grid-template-columns:1fr;gap:20px;" id="dashboardGrid"></div>
+            </section>
+            <section class="page-section" id="page-teacherCourses">
+                <div class="page-header"><h2>📚 我的课程</h2></div>
+            </section>
+            <section class="page-section" id="page-teacherStudents">
+                <div class="page-header"><h2>👥 学生名单</h2></div>
+            </section>
+            <section class="page-section" id="page-teacherGrades">
+                <div class="page-header"><h2>📝 成绩录入</h2></div>
+            </section>
             <section class="page-section" id="page-adminStudents">
                 <div class="page-header"><h2>👨‍🎓 学生管理</h2></div>
                 <div class="card"><div class="table-wrap" id="adminStudentsTable"></div></div>
@@ -1140,7 +1154,12 @@
     // ==================== 全局 ====================
     const API_BASE = '';
     let currentUser = null;
+    let authToken = localStorage.getItem('jiaowu_token') || '';
     let allCourses = [], allGrades = [], allExams = [], allNotices = [], allStudents = [], allUsers = [];
+
+    function authHeaders() {
+        return authToken ? { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken } : { 'Content-Type': 'application/json' };
+    }
 
     // ==================== 轮播图 ====================
     let bannerIndex = 0;
@@ -1218,7 +1237,9 @@
             const data = await res.json();
             if (data.success) {
                 currentUser = data.user;
+                authToken = data.token || '';
                 localStorage.setItem('jiaowu_user', JSON.stringify(currentUser));
+                localStorage.setItem('jiaowu_token', authToken);
                 updateHeaderUI();
                 closeLoginModal();
                 toast('登录成功！欢迎，' + currentUser.name, 'success');
@@ -1271,6 +1292,8 @@
 
     function logout() {
         localStorage.removeItem('jiaowu_user');
+        localStorage.removeItem('jiaowu_token');
+        authToken = '';
         currentUser = null;
         allCourses=[];allGrades=[];allExams=[];allNotices=[];allStudents=[];allUsers=[];
         updateHeaderUI();
@@ -1332,36 +1355,157 @@
         try {
             const [c,g,e,n,s,u] = await Promise.all([
                 fetch(API_BASE+'/api/courses').then(r=>r.json()),
-                fetch(API_BASE+'/api/admin/grades').then(r=>r.json()),
+                fetch(API_BASE+'/api/admin/grades', {headers:authHeaders()}).then(r=>r.json()),
                 fetch(API_BASE+'/api/exams/0').then(r=>r.json()),
                 fetch(API_BASE+'/api/notices').then(r=>r.json()),
-                fetch(API_BASE+'/api/admin/students').then(r=>r.json()),
-                fetch(API_BASE+'/api/admin/users').then(r=>r.json())
+                fetch(API_BASE+'/api/admin/students', {headers:authHeaders()}).then(r=>r.json()),
+                fetch(API_BASE+'/api/admin/users', {headers:authHeaders()}).then(r=>r.json())
             ]);
-            allCourses=c.data||[];allGrades=g.data||[];allExams=e.data||[];allNotices=n.data||[];allStudents=s.data||[];allUsers=u.data||[];
+            allCourses=(c.data||c.items||[]);allGrades=(g.data||g.items||[]);allExams=(e.data||[]);allNotices=(n.data||[]);allStudents=(s.data||s.items||[]);allUsers=(u.data||u.items||[]);
         } catch(e){}
     }
 
-    function initJiaowu() {
+    // 分页组件辅助
+    function renderPagination(totalPages, currentPage, onPageClick) {
+        if (totalPages <= 1) return '';
+        let html = '<div style="display:flex;gap:6px;justify-content:center;margin-top:16px;flex-wrap:wrap;">';
+        for (let i = 1; i <= totalPages; i++) {
+            html += `<button style="padding:6px 12px;border:1px solid var(--border);border-radius:4px;background:${i===currentPage?'var(--primary)':'#fff'};color:${i===currentPage?'#fff':'var(--text)'};cursor:pointer;font-size:13px;" onclick="${onPageClick}(${i})">${i}</button>`;
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function searchBox(id, placeholder, onInput) {
+        return `<input type="text" id="${id}" placeholder="${placeholder}" style="width:240px;height:36px;padding:0 12px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:14px;outline:none;" oninput="${onInput}">`;
+    }
+
+    // ==================== 教师端渲染 ====================
+    async function renderTeacherCourses() {
+        try {
+            const res = await fetch(API_BASE+'/api/teacher/courses', {headers:authHeaders()});
+            const data = await res.json();
+            const list = data.data || [];
+            const target = document.getElementById('page-teacherCourses');
+            if (!target) return;
+            target.innerHTML = `
+                <div class="page-header"><h2>📚 我的课程</h2><div class="breadcrumb">${currentUser.name} 老师的授课列表</div></div>
+                <div class="card"><div class="table-wrap">
+                    <table><thead><tr><th>编号</th><th>课程名称</th><th>学分</th><th>类型</th><th>时间</th><th>教室</th><th>选课人数</th><th>操作</th></tr></thead><tbody>
+                    ${list.map(c=>`<tr><td>${c.id}</td><td><strong>${c.name}</strong></td><td>${c.credit}</td><td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td><td>${c.time}</td><td>${c.location}</td><td>${c.selected}/${c.capacity}</td><td><button class="btn btn-outline btn-xs" onclick="viewCourseStudents('${c.id}','${c.name}')">查看学生</button></td></tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:30px;">暂无课程</td></tr>'}
+                    </tbody></table></div></div>`;
+        } catch(e){}
+    }
+
+    function renderTeacherStudents() {
+        const target = document.getElementById('page-teacherStudents');
+        if (!target) return;
+        target.innerHTML = `<div class="page-header"><h2>👥 学生名单</h2><div class="breadcrumb">点击课程查看学生列表</div></div><div class="card" id="teacherStudentList"><p style="color:var(--text-light);">请先在「我的课程」中点击「查看学生」</p></div>`;
+    }
+
+    function renderTeacherGrades() {
+        const target = document.getElementById('page-teacherGrades');
+        if (!target) return;
+        target.innerHTML = `<div class="page-header"><h2>📝 成绩录入</h2><div class="breadcrumb">录入或修改学生成绩</div></div><div class="card" id="teacherGradeForm"><p style="color:var(--text-light);">请先在「我的课程」中点击「查看学生」</p></div>`;
+    }
+
+    async function viewCourseStudents(courseId, courseName) {
+        try {
+            const res = await fetch(API_BASE+'/api/teacher/course-students/'+courseId, {headers:authHeaders()});
+            const data = await res.json();
+            const list = data.data || [];
+            // 显示在学生名单页
+            document.getElementById('teacherStudentList').innerHTML = `<h4 style="margin-bottom:12px;">${courseName} - 学生列表 (${list.length}人)</h4>
+                <table><thead><tr><th>学号</th><th>姓名</th><th>性别</th><th>院系</th><th>班级</th><th>成绩</th></tr></thead><tbody>
+                ${list.map(s=>`<tr><td>${s.studentId}</td><td>${s.name}</td><td>${s.gender}</td><td>${s.department||''}</td><td>${s.className||''}</td><td>${s.grade?`${s.grade.totalScore}分 / GPA ${s.grade.gpa}`:'<span style="color:#999;">未录入</span>'}</td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;">暂无学生选课</td></tr>'}
+                </tbody></table>`;
+            // 成绩录入表单
+            document.getElementById('teacherGradeForm').innerHTML = `<h4 style="margin-bottom:12px;">录入成绩 - ${courseName} (${courseId})</h4>
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+                ${list.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--border);border-radius:var(--radius);">
+                    <span style="font-weight:600;min-width:50px;">${s.name}</span>
+                    <input type="number" id="score_${s.studentId}" placeholder="分数" value="${s.grade?s.grade.totalScore:''}" style="width:70px;height:30px;padding:0 6px;border:1px solid var(--border);border-radius:4px;font-size:13px;" min="0" max="100">
+                </div>`).join('')}</div>
+                <button class="btn btn-primary" style="margin-top:16px;" onclick="submitTeacherGrades('${courseId}','${courseName}')">保存成绩</button>`;
+            navigateTo('teacherStudents');
+        } catch(e){ toast('加载失败','error'); }
+    }
+
+    async function submitTeacherGrades(courseId, courseName) {
+        const allInputs = document.querySelectorAll('[id^="score_"]');
+        const grades = [];
+        allInputs.forEach(inp => {
+            const sid = inp.id.replace('score_','');
+            const val = parseInt(inp.value);
+            if (!isNaN(val)) grades.push({studentId:sid, courseId, courseName, semester:'2023-2024-1', credit:3, regularScore:val, examScore:val, totalScore:val, gpa: val>=90?4.0:val>=80?3.0:val>=70?2.3:val>=60?1.7:0, rank:0});
+        });
+        if (grades.length === 0) { toast('请至少填写一个成绩','error'); return; }
+        try {
+            const res = await fetch(API_BASE+'/api/teacher/grades', {method:'POST',headers:authHeaders(),body:JSON.stringify(grades[0])});
+            let count=0;
+            for (const g of grades) {
+                await fetch(API_BASE+'/api/admin/grades', {method:'POST',headers:authHeaders(),body:JSON.stringify(g)});
+                count++;
+            }
+            toast(`成功录入${count}条成绩`,'success');
+        } catch(e){ toast('录入失败','error'); }
+    }
+
+    // ==================== 管理员dashboard ====================
+    async function renderAdminDashboard() {
+        try {
+            const res = await fetch(API_BASE+'/api/admin/stats', {headers:authHeaders()});
+            const d = (await res.json()).data || {};
+            document.getElementById('dashboardStats').innerHTML = `
+                <div class="stat-card"><div class="stat-icon" style="background:#E8F3FF;color:#165DFF;"><i class="fa fa-user-graduate"></i></div><div><div class="stat-value">${d.totalStudents||0}</div><div class="stat-label">在读学生</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#E8FFEA;color:#00B42A;"><i class="fa fa-chalkboard-teacher"></i></div><div><div class="stat-value">${d.totalTeachers||0}</div><div class="stat-label">教师人数</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#FFF7E8;color:#FF7D00;"><i class="fa fa-book"></i></div><div><div class="stat-value">${d.totalCourses||0}</div><div class="stat-label">课程总数</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#F5E8FF;color:#722ED1;"><i class="fa fa-file-alt"></i></div><div><div class="stat-value">${d.totalGrades||0}</div><div class="stat-label">成绩记录</div></div></div>`;
+            document.getElementById('dashboardGrid').innerHTML = `
+                <div class="card" style="grid-column:1/-1;"><div class="card-header"><h3><i class="fa fa-chart-bar"></i> 各系部学生分布</h3></div>
+                <div style="display:flex;flex-wrap:wrap;gap:12px;">${(d.studentByDept||[]).map(x=>`<div style="background:#FAFBFC;padding:10px 16px;border-radius:var(--radius);"><strong>${x.department}</strong>: ${x.count}人</div>`).join('')}</div></div>`;
+        } catch(e){}
+    }
         document.getElementById('sidebarName').textContent = currentUser.name;
         document.getElementById('sidebarId').textContent = currentUser.studentId;
         document.getElementById('sidebarAvatar').textContent = currentUser.name.charAt(0);
-        document.getElementById('sidebarRole').textContent = currentUser.role==='admin'?'管理端':'学生端';
-        document.getElementById('welcomeName').textContent = currentUser.name + ' 同学';
 
         const isAdmin = currentUser.role === 'admin';
-        document.getElementById('studentNav').style.display = isAdmin ? 'none' : 'block';
+        const isTeacher = currentUser.role === 'teacher';
+        document.getElementById('sidebarRole').textContent = isAdmin ? '管理端' : isTeacher ? '教师端' : '学生端';
+        document.getElementById('welcomeName').textContent = currentUser.name + (isTeacher ? ' 老师' : ' 同学');
+        document.getElementById('studentNav').style.display = (!isAdmin && !isTeacher) ? 'block' : 'none';
         document.getElementById('adminNav').style.display = isAdmin ? 'block' : 'none';
+
+        // 教师端导航
+        let teacherNav = document.getElementById('teacherNav');
+        if (isTeacher) {
+            if (!teacherNav) {
+                teacherNav = document.createElement('nav');
+                teacherNav.className = 'sidebar-nav';
+                teacherNav.id = 'teacherNav';
+                teacherNav.innerHTML = `
+                    <div class="nav-group">
+                        <div class="nav-group-title">教师功能</div>
+                        <div class="nav-item active" data-page="teacherCourses"><i class="fa fa-book"></i> 我的课程</div>
+                        <div class="nav-item" data-page="teacherStudents"><i class="fa fa-users"></i> 学生名单</div>
+                        <div class="nav-item" data-page="teacherGrades"><i class="fa fa-edit"></i> 成绩录入</div>
+                    </div>`;
+                document.getElementById('adminNav').parentNode.insertBefore(teacherNav, document.getElementById('adminNav'));
+            }
+            teacherNav.style.display = 'block';
+        } else if (teacherNav) teacherNav.style.display = 'none';
 
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
             item.classList.remove('active');
             item.onclick = function() { navigateTo(this.dataset.page); };
         });
-        navigateTo(isAdmin ? 'adminStudents' : 'dashboard');
+        if (isTeacher) navigateTo('teacherCourses');
+        else navigateTo(isAdmin ? 'adminDashboard' : 'dashboard');
         loadJiaowuData().then(() => {
-            renderDashboard();renderProfile();renderSchedule();renderGrades();
-            renderCourseSelection();renderExams();renderNotices();
-            if(isAdmin){renderAdminStudents();renderAdminCourses();renderAdminGrades();renderAdminNotices();renderAdminExams();}
+            if (isTeacher) { renderTeacherCourses(); renderTeacherStudents(); renderTeacherGrades(); }
+            else if (isAdmin) { renderAdminDashboard(); renderAdminStudents(); renderAdminCourses(); renderAdminGrades(); renderAdminNotices(); renderAdminExams(); }
+            else { renderDashboard(); renderProfile(); renderSchedule(); renderGrades(); renderCourseSelection(); renderExams(); renderNotices(); }
         });
     }
 
@@ -1434,17 +1578,91 @@
     function renderExams(){document.getElementById('examsTable').innerHTML='<table><thead><tr><th>ID</th><th>课程</th><th>日期</th><th>时间</th><th>考场</th><th>座位</th></tr></thead><tbody>'+allExams.map(e=>`<tr><td>${e.id}</td><td><strong>${e.courseName}</strong></td><td>${e.date}</td><td>${e.time}</td><td>${e.location}</td><td>${e.seatNo}</td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:30px;">暂无考试安排</td></tr>'+'</tbody></table>';}
     function renderNotices(){document.getElementById('noticesList').innerHTML=allNotices.map(n=>`<div class="notice-item" onclick="showNoticeDetail('${n.id}')"><span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span><div style="flex:1;"><div style="font-weight:600;font-size:14px;">${n.title}</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">${n.publisher}</div></div><span class="notice-date">${n.date}</span></div>`).join('');}
 
-    // 管理端渲染（简化）
-    function renderAdminStudents(){document.getElementById('adminStudentsTable').innerHTML='<table><thead><tr><th>学号</th><th>姓名</th><th>性别</th><th>院系</th><th>专业</th><th>状态</th><th>操作</th></tr></thead><tbody>'+allStudents.map(s=>`<tr><td>${s.studentId}</td><td>${s.name}</td><td>${s.gender}</td><td>${s.department}</td><td>${s.major}</td><td><span class="badge badge-green">${s.status||'在读'}</span></td><td><button class="btn btn-danger btn-xs" onclick="deleteStudent('${s.studentId}')">删除</button></td></tr>`).join('')+'</tbody></table>';}
-    function renderAdminCourses(){document.getElementById('adminCoursesTable').innerHTML='<table><thead><tr><th>ID</th><th>名称</th><th>教师</th><th>学分</th><th>类型</th><th>操作</th></tr></thead><tbody>'+allCourses.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td>${c.credit}</td><td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td><td><button class="btn btn-outline btn-xs" onclick="editCourse('${c.id}')">编辑</button> <button class="btn btn-danger btn-xs" onclick="deleteCourse('${c.id}')">删除</button></td></tr>`).join('')+'</tbody></table>';}
-    function renderAdminGrades(){document.getElementById('adminGradesTable').innerHTML='<table><thead><tr><th>学号</th><th>课程</th><th>学期</th><th>总评</th><th>绩点</th><th>操作</th></tr></thead><tbody>'+allGrades.map(g=>`<tr><td>${g.studentId}</td><td>${g.courseName}</td><td>${g.semester}</td><td>${g.totalScore}</td><td>${g.gpa.toFixed(1)}</td><td><button class="btn btn-outline btn-xs" onclick="editGrade('${g.studentId}','${g.courseId}')">编辑</button></td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:30px;">暂无成绩</td></tr>'+'</tbody></table>';}
+    // 管理端渲染（含搜索+分页）
+    let adminStudentPage=1,adminCoursePage=1,adminGradePage=1;
+    function renderAdminStudents(page=1){adminStudentPage=page;
+        const search=document.getElementById('adminStudentSearch')?.value?.toLowerCase()||'';
+        let list=allStudents.filter(s=>!search||s.name.toLowerCase().includes(search)||s.studentId.toLowerCase().includes(search)||s.major.toLowerCase().includes(search));
+        const totalPages=Math.ceil(list.length/10); const items=list.slice((page-1)*10,page*10);
+        document.getElementById('adminStudentsTable').innerHTML=
+            `<div style="margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">${searchBox('adminStudentSearch','搜索学生',"renderAdminStudents()")}<button class="btn btn-outline btn-sm" onclick="exportCSV('students')">📥 导出Excel</button><button class="btn btn-outline btn-sm" onclick="showBatchImport('students')">📤 批量导入</button></div>
+            <table><thead><tr><th>学号</th><th>姓名</th><th>性别</th><th>院系</th><th>专业</th><th>状态</th><th>操作</th></tr></thead><tbody>
+            ${items.map(s=>`<tr><td>${s.studentId}</td><td>${s.name}</td><td>${s.gender}</td><td>${s.department}</td><td>${s.major}</td><td><span class="badge badge-green">${s.status||'在读'}</span></td><td><button class="btn btn-danger btn-xs" onclick="deleteStudent('${s.studentId}')">删除</button></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:30px;">暂无数据</td></tr>'}
+            </tbody></table>${renderPagination(totalPages,page,'renderAdminStudents')}`;
+    }
+    function renderAdminCourses(page=1){adminCoursePage=page;
+        const search=document.getElementById('adminCourseSearch')?.value?.toLowerCase()||'';
+        let list=allCourses.filter(c=>!search||c.name.toLowerCase().includes(search)||c.teacher.toLowerCase().includes(search)||c.id.toLowerCase().includes(search));
+        const totalPages=Math.ceil(list.length/10); const items=list.slice((page-1)*10,page*10);
+        document.getElementById('adminCoursesTable').innerHTML=
+            `<div style="margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">${searchBox('adminCourseSearch','搜索课程',"renderAdminCourses()")}<button class="btn btn-primary btn-sm" onclick="showAddCourseModal()">+ 添加课程</button></div>
+            <table><thead><tr><th>ID</th><th>名称</th><th>教师</th><th>学分</th><th>类型</th><th>院系</th><th>时间</th><th>容量</th><th>操作</th></tr></thead><tbody>
+            ${items.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td>${c.credit}</td><td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td><td>${c.department}</td><td>${c.time}</td><td>${c.selected}/${c.capacity}</td><td><button class="btn btn-outline btn-xs" onclick="editCourse('${c.id}')">编辑</button> <button class="btn btn-danger btn-xs" onclick="deleteCourse('${c.id}')">删除</button></td></tr>`).join('')||'<tr><td colspan="9" style="text-align:center;padding:30px;">暂无数据</td></tr>'}
+            </tbody></table>${renderPagination(totalPages,page,'renderAdminCourses')}`;
+    }
+    function renderAdminGrades(page=1){adminGradePage=page;
+        const search=document.getElementById('adminGradeSearch')?.value?.toLowerCase()||'';
+        let list=allGrades.filter(g=>!search||g.studentId.toLowerCase().includes(search)||g.courseName.toLowerCase().includes(search));
+        const totalPages=Math.ceil(list.length/10); const items=list.slice((page-1)*10,page*10);
+        document.getElementById('adminGradesTable').innerHTML=
+            `<div style="margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">${searchBox('adminGradeSearch','搜索成绩',"renderAdminGrades()")}<button class="btn btn-primary btn-sm" onclick="showAddGradeModal()">+ 录入成绩</button><button class="btn btn-outline btn-sm" onclick="showBatchImport('grades')">📤 批量导入</button><button class="btn btn-outline btn-sm" onclick="exportCSV('grades')">📥 导出Excel</button></div>
+            <table><thead><tr><th>学号</th><th>课程</th><th>学期</th><th>学分</th><th>平时</th><th>期末</th><th>总评</th><th>绩点</th><th>操作</th></tr></thead><tbody>
+            ${items.map(g=>`<tr><td>${g.studentId}</td><td>${g.courseName}</td><td>${g.semester}</td><td>${g.credit}</td><td>${g.regularScore||0}</td><td>${g.examScore||0}</td><td><strong>${g.totalScore||0}</strong></td><td><span class="badge ${g.gpa>=3.7?'badge-green':g.gpa>=2.7?'badge-blue':'badge-orange'}">${(g.gpa||0).toFixed(1)}</span></td><td><button class="btn btn-outline btn-xs" onclick="editGrade('${g.studentId}','${g.courseId}')">编辑</button></td></tr>`).join('')||'<tr><td colspan="9" style="text-align:center;padding:30px;">暂无成绩</td></tr>'}
+            </tbody></table>${renderPagination(totalPages,page,'renderAdminGrades')}`;
+    }
+
     function renderAdminNotices(){document.getElementById('adminNoticesList').innerHTML=allNotices.map(n=>`<div class="notice-item"><span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span><div style="flex:1;"><div style="font-weight:600;">${n.title}</div><div style="font-size:12px;color:var(--text-secondary);">${n.date}|${n.publisher}</div></div><button class="btn btn-danger btn-xs" onclick="deleteNotice('${n.id}')">删除</button></div>`).join('');}
     function renderAdminExams(){document.getElementById('adminExamsTable').innerHTML='<table><thead><tr><th>ID</th><th>课程</th><th>日期</th><th>考场</th><th>操作</th></tr></thead><tbody>'+allExams.map(e=>`<tr><td>${e.id}</td><td>${e.courseName}</td><td>${e.date}</td><td>${e.location}</td><td><button class="btn btn-danger btn-xs" onclick="deleteExam('${e.id}')">删除</button></td></tr>`).join('')+'</tbody></table>';}
 
-    async function deleteStudent(sid){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/users/'+sid,{method:'DELETE'});toast('已删除','success');await loadJiaowuData();renderAdminStudents();}
-    async function deleteCourse(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/courses/'+id,{method:'DELETE'});toast('已删除','success');await loadJiaowuData();renderAdminCourses();renderCourseSelection();}
-    async function deleteNotice(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/notices/'+id,{method:'DELETE'});toast('已删除','success');await loadJiaowuData();renderAdminNotices();renderNotices();}
-    async function deleteExam(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/exams/'+id,{method:'DELETE'});toast('已删除','success');await loadJiaowuData();renderAdminExams();renderExams();}
+    // ==================== CSV导出 ====================
+    function exportCSV(type) {
+        let data=[],filename='';
+        if(type==='students'){data=allStudents.map(s=>({学号:s.studentId,姓名:s.name,性别:s.gender,院系:s.department,专业:s.major,班级:s.className,状态:s.status}));filename='学生信息.csv';}
+        else if(type==='grades'){data=allGrades.map(g=>({学号:g.studentId,课程:g.courseName,学期:g.semester,学分:g.credit,平时:g.regularScore,期末:g.examScore,总评:g.totalScore,绩点:g.gpa}));filename='成绩信息.csv';}
+        if(data.length===0){toast('没有数据可导出','error');return;}
+        const BOM='﻿'; const headers=Object.keys(data[0]).join(','); const rows=data.map(d=>Object.values(d).join(',')).join('\n');
+        const blob=new Blob([BOM+headers+'\n'+rows],{type:'text/csv;charset=utf-8'});
+        const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+        toast(`已导出${data.length}条数据`,'success');
+    }
+
+    // ==================== 批量导入 ====================
+    function showBatchImport(type) {
+        document.getElementById('modalContainer').innerHTML=`
+            <div class="modal-overlay"><div class="login-modal" onclick="event.stopPropagation()" style="width:520px;position:relative;">
+                <button class="btn-close" onclick="closeAllModals()" style="color:#333;">&times;</button>
+                <h3 style="margin-bottom:16px;">批量导入${type==='students'?'学生':'成绩'}</h3>
+                <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;">粘贴CSV/TSV格式数据（第一行为表头）：<br>${type==='students'?'学号,姓名,性别,院系,专业,班级':'学号,课程ID,课程名,学期,学分,平时成绩,期末成绩,总评,绩点,排名'}</p>
+                <textarea id="batchData" rows="8" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;font-size:12px;font-family:monospace;"></textarea>
+                <div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px;">
+                    <button class="btn btn-outline" onclick="closeAllModals()">取消</button>
+                    <button class="btn btn-primary" onclick="submitBatchImport('${type}')">导入</button>
+                </div>
+            </div></div>`;
+    }
+
+    async function submitBatchImport(type) {
+        const raw=document.getElementById('batchData').value.trim();
+        if(!raw){toast('请粘贴数据','error');return;}
+        const lines=raw.split('\n').filter(l=>l.trim());
+        if(lines.length<2){toast('至少需要表头+1行数据','error');return;}
+        const headers=lines[0].split(/[,\t]/).map(h=>h.trim());
+        const rows=lines.slice(1).map(l=>{const vals=l.split(/[,\t]/);const obj={};headers.forEach((h,i)=>obj[h]=vals[i]?.trim());return obj;});
+        try {
+            const url=API_BASE+'/api/admin/'+(type==='students'?'students/batch':'grades/batch');
+            const res=await fetch(url,{method:'POST',headers:authHeaders(),body:JSON.stringify({[type]:rows})});
+            const data=await res.json();
+            toast(data.message||'导入成功','success');
+            closeAllModals();
+            await loadJiaowuData();
+            if(type==='students')renderAdminStudents();else renderAdminGrades();
+        }catch(e){toast('导入失败','error');}
+    }
+
+    async function deleteStudent(sid){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/users/'+sid,{method:'DELETE',headers:authHeaders()});toast('已删除','success');await loadJiaowuData();renderAdminStudents();}
+    async function deleteCourse(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/courses/'+id,{method:'DELETE',headers:authHeaders()});toast('已删除','success');await loadJiaowuData();renderAdminCourses();renderCourseSelection();}
+    async function deleteNotice(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/notices/'+id,{method:'DELETE',headers:authHeaders()});toast('已删除','success');await loadJiaowuData();renderAdminNotices();renderNotices();}
+    async function deleteExam(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/exams/'+id,{method:'DELETE',headers:authHeaders()});toast('已删除','success');await loadJiaowuData();renderAdminExams();renderExams();}
 
     // 管理端弹窗（简化）
     function showAddCourseModal(){showFormModal('添加课程','course','');}
@@ -1482,7 +1700,8 @@
             url=API_BASE+'/api/admin/exams';
         }
         try{
-            const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+            const hdrs = authHeaders();
+            const res=await fetch(url,{method,headers:hdrs,body:JSON.stringify(body)});
             const data=await res.json();
             toast(data.message||'保存成功','success');
             closeAllModals();
@@ -1497,6 +1716,7 @@
     // ==================== 初始化 ====================
     window.addEventListener('DOMContentLoaded', () => {
         const saved = localStorage.getItem('jiaowu_user');
+        authToken = localStorage.getItem('jiaowu_token') || '';
         if (saved) {
             currentUser = JSON.parse(saved);
             updateHeaderUI();
