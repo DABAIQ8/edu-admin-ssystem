@@ -3,360 +3,1039 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>H大学 - 教务管理系统</title>
+    <title>H大学 - 官方网站</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
-            --primary: #165DFF;
-            --primary-dark: #0E42D2;
-            --sidebar-bg: #1E1E2D;
-            --sidebar-hover: #2A2A3D;
-            --sidebar-active: #165DFF;
-            --bg: #F5F7FA;
-            --card-bg: #FFFFFF;
-            --text: #1D2129;
-            --text-secondary: #86909C;
-            --border: #E5E6EB;
-            --success: #00B42A;
-            --warning: #FF7D00;
-            --danger: #F53F3F;
-            --info: #165DFF;
-            --shadow: 0 2px 12px rgba(0,0,0,0.06);
-            --shadow-lg: 0 8px 24px rgba(0,0,0,0.10);
+            --primary: #8B1A2B;
+            --primary-light: #A52A3B;
+            --gold: #C9A96E;
+            --gold-light: #F5E6CC;
+            --bg: #F8F8F8;
+            --white: #FFFFFF;
+            --text: #333333;
+            --text-light: #666666;
+            --text-lighter: #999999;
+            --border: #E8E8E8;
+            --shadow: 0 2px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.12);
             --radius: 8px;
             --radius-lg: 12px;
-            --transition: 0.2s ease;
+            --transition: 0.25s ease;
+            --max-width: 1280px;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
             background: var(--bg);
             color: var(--text);
-            line-height: 1.6;
-        }
-
-        /* ============ 登录页 ============ */
-        .login-page {
+            line-height: 1.7;
             min-height: 100vh;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
         }
-        .login-bg-decor {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            overflow: hidden;
-            pointer-events: none;
-        }
-        .login-bg-decor .circle {
-            position: absolute;
-            border-radius: 50%;
-            opacity: 0.08;
-        }
-        .login-bg-decor .circle:nth-child(1) { width: 600px; height: 600px; background: #165DFF; top: -200px; right: -100px; }
-        .login-bg-decor .circle:nth-child(2) { width: 400px; height: 400px; background: #00B42A; bottom: -100px; left: -100px; }
-        .login-bg-decor .circle:nth-child(3) { width: 300px; height: 300px; background: #FF7D00; top: 50%; left: 50%; transform: translate(-50%,-50%); }
 
-        .login-container {
-            position: relative;
-            z-index: 1;
-            width: 100%;
-            max-width: 460px;
+        /* ========== 模式切换 ========== */
+        .portal-mode { display: block; }
+        .jiaowu-mode { display: none; }
+        body.jiaowu .portal-mode { display: none; }
+        body.jiaowu .jiaowu-mode { display: flex; }
+
+        /* ========== 顶部工具栏 ========== */
+        .top-bar {
+            background: #1a1a1a;
+            color: #ccc;
+            font-size: 13px;
+            padding: 8px 0;
         }
-        .login-header {
-            text-align: center;
-            margin-bottom: 30px;
+        .top-bar .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
         }
-        .login-logo {
-            width: 90px; height: 90px;
-            margin: 0 auto 16px;
-            background: linear-gradient(135deg, #165DFF, #409EFF);
-            border-radius: 24px;
+        .top-bar a { color: #ccc; text-decoration: none; margin-left: 16px; transition: var(--transition); }
+        .top-bar a:hover { color: var(--gold); }
+        .top-bar i { margin-right: 4px; color: var(--gold); }
+
+        /* ========== Logo 区域 ========== */
+        .header-main {
+            background: var(--white);
+            padding: 16px 0;
+            border-bottom: 3px solid var(--primary);
+        }
+        .header-main .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .logo-icon {
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, var(--primary), #c0392b);
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 42px;
-            font-weight: 900;
             color: #fff;
-            box-shadow: 0 8px 30px rgba(22,93,255,0.4);
+            font-size: 30px;
+            font-weight: 900;
+            box-shadow: 0 4px 15px rgba(139,26,43,0.3);
         }
-        .login-header h1 { font-size: 26px; color: #fff; font-weight: 700; }
-        .login-header p { color: rgba(255,255,255,0.65); margin-top: 6px; font-size: 14px; }
-
-        .login-card {
-            background: #fff;
-            border-radius: var(--radius-lg);
-            padding: 36px 32px;
-            box-shadow: var(--shadow-lg);
+        .school-name h1 {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            letter-spacing: 2px;
         }
-        .login-tabs { display: flex; margin-bottom: 28px; border-bottom: 2px solid var(--border); }
-        .login-tabs .tab {
-            flex: 1; text-align: center; padding: 10px; cursor: pointer;
-            font-size: 16px; font-weight: 600; color: var(--text-secondary);
-            border-bottom: 2px solid transparent; margin-bottom: -2px;
-            transition: var(--transition);
+        .school-name p {
+            font-size: 12px;
+            color: var(--text-light);
+            letter-spacing: 1px;
+            margin-top: 2px;
         }
-        .login-tabs .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
-        .login-tabs .tab:hover { color: var(--primary); }
-
-        .form-group { margin-bottom: 18px; }
-        .form-group label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; color: var(--text); }
-        .form-group input, .form-group select {
-            width: 100%; height: 44px; padding: 0 14px;
-            border: 1.5px solid var(--border); border-radius: var(--radius);
-            font-size: 14px; outline: none; transition: var(--transition);
-            background: #FAFBFC;
-        }
-        .form-group input:focus, .form-group select:focus {
-            border-color: var(--primary); box-shadow: 0 0 0 3px rgba(22,93,255,0.1);
-            background: #fff;
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         .btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            height: 44px; padding: 0 20px; border: none; border-radius: var(--radius);
-            font-size: 15px; font-weight: 600; cursor: pointer; transition: var(--transition);
-        }
-        .btn-primary { width: 100%; height: 46px; background: var(--primary); color: #fff; font-size: 16px; border-radius: var(--radius); }
-        .btn-primary:hover { background: var(--primary-dark); box-shadow: 0 4px 14px rgba(22,93,255,0.35); transform: translateY(-1px); }
-        .btn-success { background: var(--success); color: #fff; }
-        .btn-danger { background: var(--danger); color: #fff; }
-        .btn-sm { height: 34px; padding: 0 14px; font-size: 13px; border-radius: 6px; }
-        .btn-outline { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
-        .btn-outline:hover { background: #EFF6FF; }
-        .btn-xs { height: 28px; padding: 0 10px; font-size: 12px; border-radius: 5px; }
-
-        .toast {
-            position: fixed; top: 20px; right: 20px; z-index: 9999;
-            padding: 12px 24px; border-radius: var(--radius); color: #fff;
-            font-size: 14px; font-weight: 500; opacity: 0; transform: translateX(120px);
-            transition: all 0.3s ease; pointer-events: none;
-        }
-        .toast.show { opacity: 1; transform: translateX(0); }
-        .toast.success { background: var(--success); }
-        .toast.error { background: var(--danger); }
-        .toast.info { background: var(--info); }
-
-        /* ============ 主页布局 ============ */
-        .main-page { display: flex; min-height: 100vh; }
-        .sidebar {
-            width: 260px; background: var(--sidebar-bg); color: #fff;
-            display: flex; flex-direction: column; flex-shrink: 0;
-            position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
-            overflow-y: auto;
-        }
-        .sidebar-brand {
-            padding: 24px 20px; display: flex; align-items: center; gap: 12px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-        .sidebar-brand .brand-icon {
-            width: 44px; height: 44px; background: var(--primary);
-            border-radius: 14px; display: flex; align-items: center;
-            justify-content: center; font-weight: 900; font-size: 22px;
-        }
-        .sidebar-brand h2 { font-size: 17px; font-weight: 600; }
-        .sidebar-brand p { font-size: 12px; color: rgba(255,255,255,0.5); }
-        .sidebar-nav { flex: 1; padding: 12px 0; }
-        .sidebar-nav .nav-group { margin-bottom: 4px; }
-        .sidebar-nav .nav-group-title {
-            padding: 12px 20px 6px; font-size: 11px; text-transform: uppercase;
-            color: rgba(255,255,255,0.35); font-weight: 600; letter-spacing: 0.5px;
-        }
-        .sidebar-nav .nav-item {
-            display: flex; align-items: center; gap: 10px;
-            padding: 11px 20px; margin: 2px 10px;
-            border-radius: var(--radius); cursor: pointer; transition: var(--transition);
-            color: rgba(255,255,255,0.75); font-size: 14px; font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 22px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            border: none;
             text-decoration: none;
         }
-        .sidebar-nav .nav-item:hover { background: var(--sidebar-hover); color: #fff; }
-        .sidebar-nav .nav-item.active { background: var(--sidebar-active); color: #fff; }
-        .sidebar-nav .nav-item i { width: 20px; text-align: center; font-size: 15px; }
-        .sidebar-footer {
-            padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
-            display: flex; align-items: center; justify-content: space-between;
+        .btn-login {
+            background: var(--primary);
+            color: #fff;
         }
-        .sidebar-footer .user-info { display: flex; align-items: center; gap: 10px; }
-        .sidebar-footer .avatar {
-            width: 36px; height: 36px; border-radius: 50%; background: var(--primary);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; font-weight: 700;
+        .btn-login:hover { background: var(--primary-light); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(139,26,43,0.3); }
+        .btn-jiaowu {
+            background: var(--gold);
+            color: #fff;
+            animation: pulse 2s infinite;
         }
-        .sidebar-footer .logout-btn { color: rgba(255,255,255,0.5); cursor: pointer; font-size: 18px; transition: var(--transition); }
-        .sidebar-footer .logout-btn:hover { color: var(--danger); }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(201,169,110,0.5); }
+            50% { box-shadow: 0 0 0 12px rgba(201,169,110,0); }
+        }
+        .btn-jiaowu:hover { background: #b8943d; transform: translateY(-1px); }
+        .user-info-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            position: relative;
+        }
+        .user-info-header .avatar {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        .user-info-header .name { font-weight: 600; font-size: 14px; }
+        .user-dropdown {
+            position: absolute; top: 100%; right: 0;
+            background: #fff; border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            min-width: 160px;
+            display: none;
+            z-index: 999;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .user-info-header:hover .user-dropdown { display: block; }
+        .user-dropdown a {
+            display: block;
+            padding: 10px 16px;
+            font-size: 14px;
+            color: var(--text);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        .user-dropdown a:hover { background: #f5f5f5; color: var(--primary); }
+        .user-dropdown .divider { border-top: 1px solid var(--border); }
 
-        .main-content {
-            flex: 1; margin-left: 260px; padding: 24px 30px;
-            min-height: 100vh;
+        /* ========== 导航栏 ========== */
+        .main-nav {
+            background: var(--primary);
+            position: sticky;
+            top: 0;
+            z-index: 900;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .main-nav .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+        }
+        .main-nav a {
+            display: inline-block;
+            color: #fff;
+            text-decoration: none;
+            padding: 14px 20px;
+            font-size: 15px;
+            font-weight: 500;
+            transition: var(--transition);
+            position: relative;
+        }
+        .main-nav a:hover, .main-nav a.active {
+            background: rgba(255,255,255,0.12);
+        }
+        .main-nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 3px;
+            background: var(--gold);
+            transition: var(--transition);
+        }
+        .main-nav a:hover::after, .main-nav a.active::after {
+            width: 60%;
         }
 
-        /* ============ 内容区组件 ============ */
-        .page-section { display: none; }
-        .page-section.active { display: block; animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-
-        .page-header { margin-bottom: 24px; }
-        .page-header h2 { font-size: 22px; font-weight: 700; color: var(--text); }
-        .page-header .breadcrumb { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
-
-        .card {
-            background: var(--card-bg); border-radius: var(--radius-lg);
-            padding: 24px; box-shadow: var(--shadow); margin-bottom: 20px;
+        /* ========== 轮播图 ========== */
+        .banner {
+            position: relative;
+            height: 420px;
+            overflow: hidden;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, var(--primary) 100%);
         }
-        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-        .card-header h3 { font-size: 17px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .card-header h3 i { color: var(--primary); }
-
-        /* 统计卡片 */
-        .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-card {
-            background: var(--card-bg); border-radius: var(--radius-lg); padding: 20px 24px;
-            box-shadow: var(--shadow); display: flex; align-items: center; gap: 16px;
-            transition: var(--transition); cursor: default;
+        .banner-slide {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            opacity: 0;
+            transition: opacity 0.8s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: #fff;
         }
-        .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
-        .stat-card .stat-icon {
-            width: 50px; height: 50px; border-radius: var(--radius);
-            display: flex; align-items: center; justify-content: center; font-size: 22px;
+        .banner-slide.active { opacity: 1; }
+        .banner-slide .bg-decor {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            opacity: 0.12;
         }
-        .stat-card .stat-value { font-size: 28px; font-weight: 700; }
-        .stat-card .stat-label { font-size: 13px; color: var(--text-secondary); }
-
-        /* 表格 */
-        .table-wrap { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        table th, table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--border); }
-        table th { background: #FAFBFC; font-weight: 600; color: var(--text-secondary); font-size: 13px; white-space: nowrap; }
-        table tbody tr:hover { background: #FAFBFC; }
-        .badge {
-            display: inline-block; padding: 2px 10px; border-radius: 20px;
-            font-size: 12px; font-weight: 500;
+        .banner-slide:nth-child(1) .bg-decor {
+            background: radial-gradient(circle at 30% 50%, #fff 0%, transparent 60%),
+                        radial-gradient(circle at 70% 50%, var(--gold) 0%, transparent 60%);
         }
-        .badge-blue { background: #E8F3FF; color: #165DFF; }
-        .badge-green { background: #E8FFEA; color: #00B42A; }
-        .badge-orange { background: #FFF7E8; color: #FF7D00; }
-        .badge-red { background: #FFECE8; color: #F53F3F; }
-        .badge-purple { background: #F5E8FF; color: #722ED1; }
-
-        /* 课表 */
-        .schedule-table { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-        .schedule-table table { table-layout: fixed; }
-        .schedule-table th { text-align: center; background: var(--primary); color: #fff; padding: 10px; font-size: 13px; font-weight: 600; }
-        .schedule-table td { height: 80px; vertical-align: top; padding: 6px; font-size: 12px; }
-        .schedule-table .course-cell {
-            padding: 4px 6px; border-radius: 4px; margin-bottom: 2px;
-            font-size: 11px; line-height: 1.4; cursor: default;
+        .banner-slide:nth-child(2) .bg-decor {
+            background: radial-gradient(circle at 20% 30%, var(--gold) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 70%, #fff 0%, transparent 50%);
         }
-        .schedule-table .course-cell.math { background: #E8F3FF; border-left: 3px solid #165DFF; }
-        .schedule-table .course-cell.eng { background: #E8FFEA; border-left: 3px solid #00B42A; }
-        .schedule-table .course-cell.cs { background: #FFF7E8; border-left: 3px solid #FF7D00; }
-        .schedule-table .course-cell.polit { background: #FFECE8; border-left: 3px solid #F53F3F; }
-        .schedule-table .course-cell.phy { background: #F5E8FF; border-left: 3px solid #722ED1; }
-        .schedule-table .course-cell.other { background: #F2F3F5; border-left: 3px solid #86909C; }
+        .banner-slide:nth-child(3) .bg-decor {
+            background: radial-gradient(circle at 50% 20%, #fff 0%, transparent 50%),
+                        radial-gradient(circle at 50% 80%, var(--primary-light) 0%, transparent 50%);
+        }
+        .banner-content {
+            position: relative;
+            z-index: 2;
+            max-width: 700px;
+            padding: 0 20px;
+        }
+        .banner-content h2 {
+            font-size: 40px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: 3px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        .banner-content p {
+            font-size: 18px;
+            opacity: 0.9;
+            line-height: 1.8;
+        }
+        .banner-dots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 3;
+        }
+        .banner-dots span {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .banner-dots span.active {
+            background: var(--gold);
+            width: 32px;
+            border-radius: 6px;
+        }
 
-        /* 通知 */
-        .notice-list { }
+        /* ========== 主内容区 ========== */
+        .container {
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        .section {
+            padding: 50px 0;
+        }
+        .section-title {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .section-title h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            display: inline-block;
+            position: relative;
+            padding-bottom: 12px;
+        }
+        .section-title h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--gold);
+        }
+        .section-title p {
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+
+        /* ========== 新闻+公告 双栏 ========== */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+        }
+        .info-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+        .info-card-header {
+            padding: 16px 20px;
+            border-bottom: 2px solid var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .info-card-header h3 {
+            font-size: 18px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .info-card-header h3::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 20px;
+            background: var(--primary);
+            border-radius: 2px;
+        }
+        .info-card-header a {
+            font-size: 13px;
+            color: var(--text-lighter);
+            text-decoration: none;
+        }
+        .info-card-header a:hover { color: var(--primary); }
+
+        /* 新闻列表 */
+        .news-list { padding: 8px 0; }
+        .news-item {
+            display: flex;
+            gap: 14px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .news-item:last-child { border-bottom: none; }
+        .news-item:hover { background: #fafafa; }
+        .news-item .news-img {
+            width: 140px; height: 90px;
+            border-radius: var(--radius);
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 28px;
+        }
+        .news-item .news-body { flex: 1; min-width: 0; }
+        .news-item .news-body h4 {
+            font-size: 15px;
+            font-weight: 600;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .news-item:hover .news-body h4 { color: var(--primary); }
+        .news-item .news-body .news-excerpt {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-top: 6px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        .news-item .news-date {
+            font-size: 12px;
+            color: var(--text-lighter);
+            white-space: nowrap;
+            text-align: center;
+        }
+        .news-item .news-date .day {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+            display: block;
+        }
+
+        /* 公告列表 */
+        .notice-list { padding: 8px 0; }
         .notice-item {
-            display: flex; align-items: flex-start; gap: 14px;
-            padding: 16px 0; border-bottom: 1px solid var(--border);
-            cursor: pointer; transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
         }
         .notice-item:last-child { border-bottom: none; }
-        .notice-item:hover { background: #FAFBFC; margin: 0 -12px; padding-left: 12px; padding-right: 12px; border-radius: var(--radius); }
-        .notice-item .notice-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap; margin-top: 2px; }
-        .notice-item .notice-tag.important { background: #FFECE8; color: #F53F3F; }
-        .notice-item .notice-tag.normal { background: #E8F3FF; color: #165DFF; }
-        .notice-item .notice-date { font-size: 12px; color: var(--text-secondary); white-space: nowrap; }
-
-        /* 表单行 */
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
-        select.filter-select {
-            height: 36px; padding: 0 12px; border: 1.5px solid var(--border);
-            border-radius: var(--radius); font-size: 14px; outline: none;
+        .notice-item:hover { background: #fafafa; }
+        .notice-item .notice-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: var(--primary);
+            flex-shrink: 0;
         }
-        select.filter-select:focus { border-color: var(--primary); }
+        .notice-item .notice-title {
+            flex: 1;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .notice-item:hover .notice-title { color: var(--primary); }
+        .notice-item .notice-date {
+            font-size: 12px;
+            color: var(--text-lighter);
+            white-space: nowrap;
+        }
+        .notice-item .notice-tag {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .notice-tag.important { background: #FFF0F0; color: var(--primary); }
+        .notice-tag.normal { background: #F0F4FF; color: #3366CC; }
 
-        /* 弹窗 */
+        /* ========== 快速入口 ========== */
+        .quick-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+        }
+        .quick-link-card {
+            background: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 28px 20px;
+            text-align: center;
+            text-decoration: none;
+            color: inherit;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            border-top: 3px solid transparent;
+        }
+        .quick-link-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-top-color: var(--primary);
+        }
+        .quick-link-card .icon {
+            width: 56px; height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 12px;
+            font-size: 24px;
+            color: #fff;
+        }
+        .quick-link-card .icon.red { background: linear-gradient(135deg, #c0392b, var(--primary)); }
+        .quick-link-card .icon.blue { background: linear-gradient(135deg, #2980b9, #3498db); }
+        .quick-link-card .icon.green { background: linear-gradient(135deg, #27ae60, #2ecc71); }
+        .quick-link-card .icon.orange { background: linear-gradient(135deg, #d68910, #f39c12); }
+        .quick-link-card .icon.purple { background: linear-gradient(135deg, #7d3c98, #a569bd); }
+        .quick-link-card .icon.teal { background: linear-gradient(135deg, #1abc9c, #16a085); }
+        .quick-link-card h4 { font-size: 15px; margin-bottom: 4px; }
+        .quick-link-card p { font-size: 12px; color: var(--text-light); }
+
+        /* ========== 学校简介 ========== */
+        .about-section {
+            background: var(--white);
+        }
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+        .about-text h3 {
+            font-size: 22px;
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+        .about-text p {
+            font-size: 14px;
+            color: var(--text-light);
+            line-height: 2;
+            margin-bottom: 12px;
+        }
+        .about-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 24px 16px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+            border-radius: var(--radius-lg);
+        }
+        .stat-box .num {
+            font-size: 32px;
+            font-weight: 800;
+        }
+        .stat-box .label { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+
+        /* ========== 页脚 ========== */
+        .site-footer {
+            background: #1a1a2e;
+            color: #aaa;
+            padding: 40px 0 20px;
+        }
+        .footer-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .footer-links h4 {
+            font-size: 15px;
+            color: #fff;
+            margin-bottom: 12px;
+        }
+        .footer-links a {
+            display: block;
+            color: #aaa;
+            text-decoration: none;
+            font-size: 13px;
+            padding: 4px 0;
+            transition: var(--transition);
+        }
+        .footer-links a:hover { color: var(--gold); }
+        .footer-bottom {
+            text-align: center;
+            font-size: 12px;
+            line-height: 2;
+        }
+        .footer-bottom span { margin: 0 8px; }
+
+        /* ========== 登录弹窗 ========== */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.5); z-index: 1000;
-            display: flex; align-items: center; justify-content: center;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
         }
-        .modal {
-            background: #fff; border-radius: var(--radius-lg);
-            padding: 28px 32px; width: 520px; max-width: 90vw;
-            max-height: 85vh; overflow-y: auto; box-shadow: var(--shadow-lg);
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .login-modal {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            width: 420px;
+            max-width: 94vw;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            overflow: hidden;
+            animation: slideUp 0.3s ease;
         }
-        .modal h3 { font-size: 18px; margin-bottom: 20px; }
-        .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .login-modal-header {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: #fff;
+            padding: 24px 28px;
+            text-align: center;
+        }
+        .login-modal-header h3 { font-size: 20px; }
+        .login-modal-header p { font-size: 13px; opacity: 0.8; margin-top: 4px; }
+        .login-modal-body { padding: 28px; }
+        .login-tabs {
+            display: flex;
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border);
+        }
+        .login-tabs .tab {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text-lighter);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: var(--transition);
+        }
+        .login-tabs .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            height: 44px;
+            padding: 0 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 14px;
+            outline: none;
+            transition: var(--transition);
+        }
+        .form-group input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139,26,43,0.08);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .btn-submit {
+            width: 100%;
+            height: 46px;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-submit:hover { background: var(--primary-light); }
+        .btn-close {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            color: #fff;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+        .btn-close:hover { opacity: 1; }
+        .alert {
+            padding: 10px 14px;
+            border-radius: var(--radius);
+            font-size: 13px;
+            margin-bottom: 14px;
+        }
+        .alert-error { background: #FFF0F0; color: var(--primary); border: 1px solid #FFD0D0; }
+        .alert-success { background: #F0FFF0; color: #27ae60; border: 1px solid #D0FFD0; }
 
-        /* 响应式 */
-        @media (max-width: 1024px) { .sidebar { width: 220px; } .main-content { margin-left: 220px; } .stat-grid { grid-template-columns: repeat(2,1fr); } }
-        @media (max-width: 768px) {
-            .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
-            .sidebar.open { transform: translateX(0); }
-            .main-content { margin-left: 0; padding: 16px; }
-            .stat-grid { grid-template-columns: 1fr; }
+        /* ========== 响应式 ========== */
+        @media (max-width: 900px) {
+            .banner { height: 280px; }
+            .banner-content h2 { font-size: 26px; }
+            .two-col { grid-template-columns: 1fr; }
+            .about-grid { grid-template-columns: 1fr; }
+            .main-nav a { padding: 10px 12px; font-size: 13px; }
+            .header-main .container { flex-direction: column; gap: 12px; text-align: center; }
+            .logo-area { flex-direction: column; }
+            .school-name h1 { font-size: 20px; }
+            .quick-links { grid-template-columns: repeat(3, 1fr); }
+            .about-stats { grid-template-columns: repeat(3, 1fr); }
         }
+        @media (max-width: 600px) {
+            .banner { height: 220px; }
+            .banner-content h2 { font-size: 20px; }
+            .banner-content p { font-size: 14px; }
+            .news-item { flex-direction: column; }
+            .news-item .news-img { width: 100%; height: 140px; }
+            .quick-links { grid-template-columns: repeat(2, 1fr); }
+            .about-stats { grid-template-columns: 1fr; }
+            .header-actions { flex-wrap: wrap; justify-content: center; }
+            .login-modal { width: 100%; border-radius: 0; min-height: 100vh; }
+        }
+
+        /* ========== 通知详情弹窗 ========== */
+        .detail-modal {
+            background: #fff;
+            border-radius: var(--radius-lg);
+            width: 600px;
+            max-width: 94vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 32px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        .detail-modal h3 { font-size: 20px; color: var(--primary); margin-bottom: 12px; }
+        .detail-modal .meta { font-size: 12px; color: var(--text-lighter); margin-bottom: 20px; }
+        .detail-modal .content { font-size: 14px; line-height: 2; color: var(--text); }
     </style>
 </head>
 <body>
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
+    <!-- ======================== 门户首页 ======================== -->
+    <div class="portal-mode">
+        <!-- 顶部工具栏 -->
+        <div class="top-bar">
+            <div class="container">
+                <span><i class="fa fa-phone"></i> 招生热线：0712-2345919</span>
+                <span>
+                    <a href="#"><i class="fa fa-envelope"></i> 院长信箱</a>
+                    <a href="#"><i class="fa fa-envelope"></i> 书记信箱</a>
+                    <a href="#"><i class="fa fa-sitemap"></i> 网站地图</a>
+                </span>
+            </div>
+        </div>
 
-    <!-- ======================== 登录页面 ======================== -->
-    <div class="login-page" id="loginPage">
-        <div class="login-bg-decor">
-            <div class="circle"></div><div class="circle"></div><div class="circle"></div>
-        </div>
-        <div class="login-container">
-            <div class="login-header">
-                <div class="login-logo">H</div>
-                <h1>H大学 教务管理系统</h1>
-                <p>Academic Affairs Management System</p>
-            </div>
-            <div class="login-card">
-                <div class="login-tabs">
-                    <div class="tab active" onclick="switchLoginTab('login')">登 录</div>
-                    <div class="tab" onclick="switchLoginTab('register')">注 册</div>
+        <!-- Logo + 登录 -->
+        <div class="header-main">
+            <div class="container">
+                <div class="logo-area">
+                    <div class="logo-icon">H</div>
+                    <div class="school-name">
+                        <h1>H 大 学</h1>
+                        <p>HU UNIVERSITY · 厚德载物 博学笃行</p>
+                    </div>
                 </div>
-                <!-- 登录表单 -->
-                <form id="loginForm" onsubmit="handleLogin(event)">
-                    <div class="form-group">
-                        <label>账号 / 学号</label>
-                        <input type="text" id="loginUsername" placeholder="请输入账号或学号" required>
-                    </div>
-                    <div class="form-group">
-                        <label>密码</label>
-                        <input type="password" id="loginPassword" placeholder="请输入密码" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary" id="loginBtn">登 录</button>
-                </form>
-                <!-- 注册表单 -->
-                <form id="registerForm" style="display:none;" onsubmit="handleRegister(event)">
-                    <div class="form-group"><label>学号 *</label><input type="text" id="regStudentId" placeholder="请输入学号" required></div>
-                    <div class="form-group"><label>姓名 *</label><input type="text" id="regName" placeholder="请输入真实姓名" required></div>
-                    <div class="form-group"><label>密码 *</label><input type="password" id="regPassword" placeholder="请设置密码（至少6位）" minlength="6" required></div>
-                    <div class="form-group"><label>确认密码 *</label><input type="password" id="regPassword2" placeholder="请再次输入密码" required></div>
-                    <div class="form-row">
-                        <div class="form-group"><label>性别</label><select id="regGender"><option value="男">男</option><option value="女">女</option></select></div>
-                        <div class="form-group"><label>院系</label><input type="text" id="regDepartment" placeholder="如：信息工程学院"></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>专业</label><input type="text" id="regMajor" placeholder="如：计算机科学与技术"></div>
-                        <div class="form-group"><label>入学年份</label><input type="text" id="regEnrollYear" placeholder="如：2024" value="2024"></div>
-                    </div>
-                    <button type="submit" class="btn btn-primary">注 册</button>
-                </form>
+                <div class="header-actions">
+                    <!-- 未登录 -->
+                    <span id="headerNotLoggedIn">
+                        <button class="btn btn-login" onclick="showLoginModal()">
+                            <i class="fa fa-sign-in-alt"></i> 登录教务系统
+                        </button>
+                    </span>
+                    <!-- 已登录 -->
+                    <span id="headerLoggedIn" style="display:none;">
+                        <div class="user-info-header">
+                            <div class="avatar" id="headerAvatar">H</div>
+                            <div class="name" id="headerName"></div>
+                            <i class="fa fa-caret-down"></i>
+                            <div class="user-dropdown">
+                                <a href="javascript:enterJiaowu()"><i class="fa fa-graduation-cap"></i> 进入教务系统</a>
+                                <a href="javascript:logout()"><i class="fa fa-sign-out-alt"></i> 退出登录</a>
+                            </div>
+                        </div>
+                        <button class="btn btn-jiaowu" onclick="enterJiaowu()">
+                            <i class="fa fa-arrow-right"></i> 进入教务系统
+                        </button>
+                    </span>
+                </div>
             </div>
         </div>
+
+        <!-- 导航栏 -->
+        <nav class="main-nav">
+            <div class="container">
+                <a href="#" class="active">网站首页</a>
+                <a href="#about">学校概况</a>
+                <a href="#news">新闻中心</a>
+                <a href="#notice">通知公告</a>
+                <a href="javascript:showLoginModal()">教务系统</a>
+                <a href="#contact">联系方式</a>
+            </div>
+        </nav>
+
+        <!-- 轮播图 -->
+        <div class="banner" id="banner">
+            <div class="banner-slide active" data-index="0">
+                <div class="bg-decor"></div>
+                <div class="banner-content">
+                    <h2>🎓 欢迎来到 H 大学</h2>
+                    <p>厚德载物 · 博学笃行 · 求实创新</p>
+                </div>
+            </div>
+            <div class="banner-slide" data-index="1">
+                <div class="bg-decor"></div>
+                <div class="banner-content">
+                    <h2>📚 2026 年招生进行中</h2>
+                    <p>欢迎报考 H 大学，开启精彩大学生活</p>
+                </div>
+            </div>
+            <div class="banner-slide" data-index="2">
+                <div class="bg-decor"></div>
+                <div class="banner-content">
+                    <h2>🏆 追求卓越 共创未来</h2>
+                    <p>培养具有创新精神和实践能力的高素质人才</p>
+                </div>
+            </div>
+            <div class="banner-dots">
+                <span class="active" data-index="0"></span>
+                <span data-index="1"></span>
+                <span data-index="2"></span>
+            </div>
+        </div>
+
+        <!-- 新闻 + 公告 双栏 -->
+        <div class="section" id="news">
+            <div class="container">
+                <div class="section-title">
+                    <h2>新闻资讯</h2>
+                    <p>了解校园最新动态</p>
+                </div>
+                <div class="two-col">
+                    <!-- 学校要闻 -->
+                    <div class="info-card">
+                        <div class="info-card-header">
+                            <h3>学校要闻</h3>
+                            <a href="#">更多 &raquo;</a>
+                        </div>
+                        <div class="news-list" id="newsList">
+                            <div class="news-item">
+                                <div class="news-img"><i class="fa fa-newspaper"></i></div>
+                                <div class="news-body">
+                                    <h4>H大学2026年教学工作会议顺利召开</h4>
+                                    <p class="news-excerpt">会议总结了上一年度教学工作成果，部署了新学期的重点任务...</p>
+                                </div>
+                                <div class="news-date"><span class="day">15</span>2026-07</div>
+                            </div>
+                            <div class="news-item">
+                                <div class="news-img"><i class="fa fa-trophy"></i></div>
+                                <div class="news-body">
+                                    <h4>我校学子在全国大学生程序设计竞赛中荣获一等奖</h4>
+                                    <p class="news-excerpt">来自信息工程学院的团队经过激烈角逐，从200余支队伍中脱颖而出...</p>
+                                </div>
+                                <div class="news-date"><span class="day">12</span>2026-07</div>
+                            </div>
+                            <div class="news-item">
+                                <div class="news-img"><i class="fa fa-handshake"></i></div>
+                                <div class="news-body">
+                                    <h4>H大学与多家知名企业签署校企合作协议</h4>
+                                    <p class="news-excerpt">双方将在人才培养、科研合作、实习就业等方面展开深度合作...</p>
+                                </div>
+                                <div class="news-date"><span class="day">08</span>2026-07</div>
+                            </div>
+                            <div class="news-item">
+                                <div class="news-img"><i class="fa fa-graduation-cap"></i></div>
+                                <div class="news-body">
+                                    <h4>2026届毕业生典礼隆重举行</h4>
+                                    <p class="news-excerpt">三千余名毕业生身着学位服，共同见证这一庄严而温馨的时刻...</p>
+                                </div>
+                                <div class="news-date"><span class="day">28</span>2026-06</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 通知公告 -->
+                    <div class="info-card" id="notice">
+                        <div class="info-card-header">
+                            <h3>通知公告</h3>
+                            <a href="#">更多 &raquo;</a>
+                        </div>
+                        <div class="notice-list" id="noticeList"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 快速入口 -->
+        <div class="section" style="background:var(--white);">
+            <div class="container">
+                <div class="section-title">
+                    <h2>快速入口</h2>
+                    <p>常用服务一键直达</p>
+                </div>
+                <div class="quick-links">
+                    <a href="javascript:showLoginModal()" class="quick-link-card">
+                        <div class="icon red"><i class="fa fa-graduation-cap"></i></div>
+                        <h4>教务系统</h4>
+                        <p>选课·成绩·课表</p>
+                    </a>
+                    <a href="javascript:showLoginModal()" class="quick-link-card">
+                        <div class="icon blue"><i class="fa fa-book-open"></i></div>
+                        <h4>在线课程</h4>
+                        <p>MOOC 学习平台</p>
+                    </a>
+                    <a href="#" class="quick-link-card">
+                        <div class="icon green"><i class="fa fa-search"></i></div>
+                        <h4>招生信息</h4>
+                        <p>报考指南·录取查询</p>
+                    </a>
+                    <a href="#" class="quick-link-card">
+                        <div class="icon orange"><i class="fa fa-building"></i></div>
+                        <h4>就业服务</h4>
+                        <p>招聘信息·职业规划</p>
+                    </a>
+                    <a href="#" class="quick-link-card">
+                        <div class="icon purple"><i class="fa fa-landmark"></i></div>
+                        <h4>学工在线</h4>
+                        <p>奖学金·助学贷款</p>
+                    </a>
+                    <a href="#" class="quick-link-card">
+                        <div class="icon teal"><i class="fa fa-book"></i></div>
+                        <h4>图书馆</h4>
+                        <p>馆藏检索·电子资源</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 学校简介 -->
+        <div class="section about-section" id="about">
+            <div class="container">
+                <div class="section-title">
+                    <h2>学校概况</h2>
+                    <p>厚德载物 · 博学笃行 · 求实创新</p>
+                </div>
+                <div class="about-grid">
+                    <div class="about-text">
+                        <h3>关于 H 大学</h3>
+                        <p>H大学是一所综合性全日制普通本科高等院校，坐落于美丽的孝感市。学校秉承"厚德载物、博学笃行"的校训，致力于培养具有创新精神和实践能力的高素质应用型人才。</p>
+                        <p>学校设有信息工程学院、经济与管理学院、文学与新闻传播学院、外国语学院、机电工程学院、生物与化学学院、艺术与设计学院等十余个教学单位，涵盖工、管、文、理、艺等多个学科门类。</p>
+                        <p>学校现有在校学生15000余人，教职工800余人，校园占地面积1200余亩，建筑面积40余万平方米，教学科研仪器设备总值超过1.5亿元。</p>
+                    </div>
+                    <div class="about-stats">
+                        <div class="stat-box">
+                            <div class="num">15</div>
+                            <div class="label">教学院系</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="num">50+</div>
+                            <div class="label">本科专业</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="num">15000+</div>
+                            <div class="label">在校学生</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="num">800+</div>
+                            <div class="label">教职员工</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="num">1200</div>
+                            <div class="label">校园面积（亩）</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="num">20+</div>
+                            <div class="label">建校历史（年）</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="site-footer" id="contact">
+            <div class="container">
+                <div class="footer-links">
+                    <div>
+                        <h4>快速链接</h4>
+                        <a href="javascript:showLoginModal()">教务系统</a>
+                        <a href="#">招生信息网</a>
+                        <a href="#">就业信息网</a>
+                        <a href="#">图书馆</a>
+                    </div>
+                    <div>
+                        <h4>教学单位</h4>
+                        <a href="#">信息工程学院</a>
+                        <a href="#">经济与管理学院</a>
+                        <a href="#">文学与新闻传播学院</a>
+                        <a href="#">外国语学院</a>
+                    </div>
+                    <div>
+                        <h4>公共服务</h4>
+                        <a href="#">学校方位</a>
+                        <a href="#">办公电话</a>
+                        <a href="#">学校校历</a>
+                        <a href="#">生活指南</a>
+                    </div>
+                    <div>
+                        <h4>友情链接</h4>
+                        <a href="#">教育部</a>
+                        <a href="#">湖北省教育厅</a>
+                        <a href="#">中国高等教育学生信息网</a>
+                        <a href="#">湖北招生信息网</a>
+                    </div>
+                </div>
+                <div class="footer-bottom">
+                    <p><strong>H大学</strong></p>
+                    <p>地址：湖北省孝感市学院路158号 <span>|</span> 邮编：432000</p>
+                    <p>电话：(0712)2345612 <span>|</span> 招生热线：(0712)2345919 <span>|</span> 邮箱：office@hu-university.edu.cn</p>
+                    <p style="margin-top:8px;">Copyright &copy; 2024 H大学 All Rights Reserved <span>|</span> 鄂ICP备06000924号</p>
+                </div>
+            </div>
+        </footer>
     </div>
 
-    <!-- ======================== 主页面（初始隐藏） ======================== -->
-    <div class="main-page" id="mainPage" style="display:none;">
+    <!-- ======================== 教务系统模式 ======================== -->
+    <div class="jiaowu-mode" id="jiaowuMain" style="display:none;">
         <!-- 侧边栏 -->
         <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
@@ -369,47 +1048,23 @@
             <nav class="sidebar-nav" id="studentNav">
                 <div class="nav-group">
                     <div class="nav-group-title">学生功能</div>
-                    <div class="nav-item active" data-page="dashboard">
-                        <i class="fa fa-home"></i> 首页概览
-                    </div>
-                    <div class="nav-item" data-page="profile">
-                        <i class="fa fa-id-card"></i> 个人信息
-                    </div>
-                    <div class="nav-item" data-page="schedule">
-                        <i class="fa fa-table"></i> 我的课表
-                    </div>
-                    <div class="nav-item" data-page="grades">
-                        <i class="fa fa-chart-line"></i> 成绩查询
-                    </div>
-                    <div class="nav-item" data-page="selection">
-                        <i class="fa fa-check-square"></i> 在线选课
-                    </div>
-                    <div class="nav-item" data-page="exams">
-                        <i class="fa fa-clock"></i> 考试安排
-                    </div>
-                    <div class="nav-item" data-page="notices">
-                        <i class="fa fa-bullhorn"></i> 学校通知
-                    </div>
+                    <div class="nav-item active" data-page="dashboard"><i class="fa fa-home"></i> 首页概览</div>
+                    <div class="nav-item" data-page="profile"><i class="fa fa-id-card"></i> 个人信息</div>
+                    <div class="nav-item" data-page="schedule"><i class="fa fa-table"></i> 我的课表</div>
+                    <div class="nav-item" data-page="grades"><i class="fa fa-chart-line"></i> 成绩查询</div>
+                    <div class="nav-item" data-page="selection"><i class="fa fa-check-square"></i> 在线选课</div>
+                    <div class="nav-item" data-page="exams"><i class="fa fa-clock"></i> 考试安排</div>
+                    <div class="nav-item" data-page="notices"><i class="fa fa-bullhorn"></i> 学校通知</div>
                 </div>
             </nav>
             <nav class="sidebar-nav" id="adminNav" style="display:none;">
                 <div class="nav-group">
                     <div class="nav-group-title">管理功能</div>
-                    <div class="nav-item" data-page="adminStudents">
-                        <i class="fa fa-user-graduate"></i> 学生管理
-                    </div>
-                    <div class="nav-item" data-page="adminCourses">
-                        <i class="fa fa-book"></i> 课程管理
-                    </div>
-                    <div class="nav-item" data-page="adminGrades">
-                        <i class="fa fa-graduation-cap"></i> 成绩管理
-                    </div>
-                    <div class="nav-item" data-page="adminNotices">
-                        <i class="fa fa-bullhorn"></i> 通知管理
-                    </div>
-                    <div class="nav-item" data-page="adminExams">
-                        <i class="fa fa-calendar-check"></i> 考试管理
-                    </div>
+                    <div class="nav-item" data-page="adminStudents"><i class="fa fa-user-graduate"></i> 学生管理</div>
+                    <div class="nav-item" data-page="adminCourses"><i class="fa fa-book"></i> 课程管理</div>
+                    <div class="nav-item" data-page="adminGrades"><i class="fa fa-graduation-cap"></i> 成绩管理</div>
+                    <div class="nav-item" data-page="adminNotices"><i class="fa fa-bullhorn"></i> 通知管理</div>
+                    <div class="nav-item" data-page="adminExams"><i class="fa fa-calendar-check"></i> 考试管理</div>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -420,86 +1075,58 @@
                         <div style="font-size:11px;color:rgba(255,255,255,0.45);" id="sidebarId"></div>
                     </div>
                 </div>
-                <div class="logout-btn" onclick="logout()" title="退出登录"><i class="fa fa-sign-out-alt"></i></div>
+                <div class="logout-btn" onclick="backToPortal()" title="返回首页"><i class="fa fa-home"></i></div>
             </div>
         </aside>
-
-        <!-- 内容区 -->
         <div class="main-content" id="mainContent">
-            <!-- ========== 首页 ========== -->
             <section class="page-section active" id="page-dashboard">
                 <div class="page-header"><h2>📋 首页概览</h2><div class="breadcrumb">欢迎回来，<span id="welcomeName">同学</span></div></div>
                 <div class="stat-grid" id="dashboardStats"></div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;" id="dashboardGrid"></div>
             </section>
-
-            <!-- ========== 个人信息 ========== -->
             <section class="page-section" id="page-profile">
-                <div class="page-header"><h2>🪪 个人信息</h2><div class="breadcrumb">查看和编辑个人学籍资料</div></div>
+                <div class="page-header"><h2>🪪 个人信息</h2></div>
                 <div class="card" id="profileCard"></div>
             </section>
-
-            <!-- ========== 课表 ========== -->
             <section class="page-section" id="page-schedule">
-                <div class="page-header"><h2>📅 我的课表</h2><div class="breadcrumb">2023-2024学年 第一学期</div></div>
+                <div class="page-header"><h2>📅 我的课表</h2></div>
                 <div class="card"><div class="schedule-table" id="scheduleTable"></div></div>
             </section>
-
-            <!-- ========== 成绩 ========== -->
             <section class="page-section" id="page-grades">
-                <div class="page-header"><h2>📊 成绩查询</h2><div class="breadcrumb">查看各学期成绩及绩点</div></div>
+                <div class="page-header"><h2>📊 成绩查询</h2></div>
                 <div class="card"><div class="card-header"><h3>成绩列表</h3><select class="filter-select" id="gradeSemesterFilter" onchange="renderGrades()"></select></div><div class="table-wrap" id="gradesTable"></div><div id="gradesSummary" style="margin-top:16px;padding:14px;background:#FAFBFC;border-radius:var(--radius);"></div></div>
             </section>
-
-            <!-- ========== 选课 ========== -->
             <section class="page-section" id="page-selection">
-                <div class="page-header"><h2>📝 在线选课</h2><div class="breadcrumb">公选课及专业选修课选课系统</div></div>
+                <div class="page-header"><h2>📝 在线选课</h2></div>
                 <div class="card"><div class="card-header"><h3>可选课程</h3></div><div class="table-wrap" id="coursesTable"></div></div>
                 <div class="card"><div class="card-header"><h3>我已选的课程</h3></div><div class="table-wrap" id="myCoursesTable"></div></div>
             </section>
-
-            <!-- ========== 考试安排 ========== -->
             <section class="page-section" id="page-exams">
-                <div class="page-header"><h2>📋 考试安排</h2><div class="breadcrumb">期末考试时间及考场信息</div></div>
+                <div class="page-header"><h2>📋 考试安排</h2></div>
                 <div class="card"><div class="table-wrap" id="examsTable"></div></div>
             </section>
-
-            <!-- ========== 通知 ========== -->
             <section class="page-section" id="page-notices">
-                <div class="page-header"><h2>📢 学校通知</h2><div class="breadcrumb">最新教务通知及公告</div></div>
+                <div class="page-header"><h2>📢 学校通知</h2></div>
                 <div class="card"><div class="notice-list" id="noticesList"></div></div>
             </section>
-
-            <!-- ========== 管理-学生管理 ========== -->
             <section class="page-section" id="page-adminStudents">
-                <div class="page-header"><h2>👨‍🎓 学生管理</h2><div class="breadcrumb">查看和管理所有学生信息</div></div>
+                <div class="page-header"><h2>👨‍🎓 学生管理</h2></div>
                 <div class="card"><div class="table-wrap" id="adminStudentsTable"></div></div>
             </section>
-
-            <!-- ========== 管理-课程管理 ========== -->
             <section class="page-section" id="page-adminCourses">
-                <div class="page-header"><h2>📚 课程管理</h2><div class="breadcrumb">添加、编辑、删除课程</div></div>
-                <div class="card">
-                    <div class="card-header"><h3>课程列表</h3><button class="btn btn-primary btn-sm" onclick="showAddCourseModal()"><i class="fa fa-plus"></i> 添加课程</button></div>
-                    <div class="table-wrap" id="adminCoursesTable"></div>
-                </div>
+                <div class="page-header"><h2>📚 课程管理</h2></div>
+                <div class="card"><div class="card-header"><h3>课程列表</h3><button class="btn btn-primary btn-sm" onclick="showAddCourseModal()"><i class="fa fa-plus"></i> 添加课程</button></div><div class="table-wrap" id="adminCoursesTable"></div></div>
             </section>
-
-            <!-- ========== 管理-成绩管理 ========== -->
             <section class="page-section" id="page-adminGrades">
-                <div class="page-header"><h2>🎓 成绩管理</h2><div class="breadcrumb">录入和修改学生成绩</div></div>
+                <div class="page-header"><h2>🎓 成绩管理</h2></div>
                 <div class="card"><div class="card-header"><h3>成绩列表</h3><button class="btn btn-primary btn-sm" onclick="showAddGradeModal()"><i class="fa fa-plus"></i> 录入成绩</button></div><div class="table-wrap" id="adminGradesTable"></div></div>
             </section>
-
-            <!-- ========== 管理-通知管理 ========== -->
             <section class="page-section" id="page-adminNotices">
-                <div class="page-header"><h2>📢 通知管理</h2><div class="breadcrumb">发布和管理通知公告</div></div>
+                <div class="page-header"><h2>📢 通知管理</h2></div>
                 <div class="card"><div class="card-header"><h3>通知列表</h3><button class="btn btn-primary btn-sm" onclick="showAddNoticeModal()"><i class="fa fa-plus"></i> 发布通知</button></div><div class="notice-list" id="adminNoticesList"></div></div>
             </section>
-
-            <!-- ========== 管理-考试管理 ========== -->
             <section class="page-section" id="page-adminExams">
-                <div class="page-header"><h2>📅 考试管理</h2><div class="breadcrumb">管理考试安排</div></div>
+                <div class="page-header"><h2>📅 考试管理</h2></div>
                 <div class="card"><div class="card-header"><h3>考试列表</h3><button class="btn btn-primary btn-sm" onclick="showAddExamModal()"><i class="fa fa-plus"></i> 添加考试</button></div><div class="table-wrap" id="adminExamsTable"></div></div>
             </section>
         </div>
@@ -507,157 +1134,234 @@
 
     <!-- 弹窗容器 -->
     <div id="modalContainer"></div>
+    <div id="loginModalContainer"></div>
 
     <script>
-    // ==================== 全局配置 ====================
+    // ==================== 全局 ====================
     const API_BASE = '';
     let currentUser = null;
-    let allCourses = [];
-    let allGrades = [];
-    let allExams = [];
-    let allNotices = [];
-    let allStudents = [];
-    let allUsers = [];
+    let allCourses = [], allGrades = [], allExams = [], allNotices = [], allStudents = [], allUsers = [];
+
+    // ==================== 轮播图 ====================
+    let bannerIndex = 0;
+    setInterval(() => {
+        const slides = document.querySelectorAll('.banner-slide');
+        const dots = document.querySelectorAll('.banner-dots span');
+        slides.forEach(s => s.classList.remove('active'));
+        dots.forEach(d => d.classList.remove('active'));
+        bannerIndex = (bannerIndex + 1) % slides.length;
+        slides[bannerIndex].classList.add('active');
+        dots[bannerIndex].classList.add('active');
+    }, 4000);
 
     // ==================== Toast ====================
-    function toast(msg, type='info') {
-        const t = document.getElementById('toast');
-        t.textContent = msg; t.className = `toast ${type} show`;
-        setTimeout(() => { t.className = 'toast'; }, 3000);
+    function toast(msg, t) {
+        let el = document.getElementById('toast');
+        if (!el) { el = document.createElement('div'); el.id = 'toast'; el.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;padding:12px 24px;border-radius:8px;color:#fff;font-size:14px;font-weight:500;opacity:0;transform:translateX(120px);transition:all 0.3s;pointer-events:none;'; document.body.appendChild(el); }
+        el.textContent = msg;
+        el.style.background = t === 'success' ? '#27ae60' : t === 'error' ? '#e74c3c' : '#2980b9';
+        el.style.opacity = '1'; el.style.transform = 'translateX(0)';
+        setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(120px)'; }, 3000);
     }
 
-    // ==================== 登录 / 注册 ====================
-    function switchLoginTab(tab) {
-        document.querySelectorAll('.login-tabs .tab').forEach((t,i) => t.classList.toggle('active', (tab==='login'&&i===0)||(tab==='register'&&i===1)));
-        document.getElementById('loginForm').style.display = tab==='login'?'block':'none';
-        document.getElementById('registerForm').style.display = tab==='register'?'block':'none';
+    // ==================== 登录弹窗 ====================
+    function showLoginModal() {
+        document.getElementById('loginModalContainer').innerHTML = `
+            <div class="modal-overlay" onclick="closeLoginModal()">
+                <div class="login-modal" onclick="event.stopPropagation()" style="position:relative;">
+                    <button class="btn-close" onclick="closeLoginModal()">&times;</button>
+                    <div class="login-modal-header">
+                        <h3>H大学 教务系统</h3>
+                        <p>请输入账号密码登录</p>
+                    </div>
+                    <div class="login-modal-body">
+                        <div class="login-tabs">
+                            <div class="tab active" onclick="switchLoginTab('login')">登 录</div>
+                            <div class="tab" onclick="switchLoginTab('register')">注 册</div>
+                        </div>
+                        <div id="loginMsg"></div>
+                        <form id="loginFormModal" onsubmit="handleLoginModal(event)">
+                            <div class="form-group"><label>账号 / 学号</label><input type="text" id="loginUserModal" placeholder="请输入账号或学号" required></div>
+                            <div class="form-group"><label>密码</label><input type="password" id="loginPassModal" placeholder="请输入密码" required></div>
+                            <button type="submit" class="btn-submit" id="loginBtnModal">登 录</button>
+                        </form>
+                        <form id="registerFormModal" style="display:none;" onsubmit="handleRegisterModal(event)">
+                            <div class="form-group"><label>学号 *</label><input type="text" id="regSid" placeholder="请输入学号" required></div>
+                            <div class="form-group"><label>姓名 *</label><input type="text" id="regName" placeholder="请输入真实姓名" required></div>
+                            <div class="form-group"><label>密码 *</label><input type="password" id="regPwd" placeholder="至少6位" minlength="6" required></div>
+                            <div class="form-row"><div class="form-group"><label>性别</label><select id="regGender"><option>男</option><option>女</option></select></div><div class="form-group"><label>院系</label><input type="text" id="regDept" placeholder="如：信息工程学院"></div></div>
+                            <button type="submit" class="btn-submit">注 册</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
-    async function handleLogin(e) {
+    function closeLoginModal() { document.getElementById('loginModalContainer').innerHTML = ''; }
+    function switchLoginTab(t) {
+        document.querySelectorAll('.login-tabs .tab').forEach((el,i) => el.classList.toggle('active', (t==='login'&&i===0)||(t==='register'&&i===1)));
+        document.getElementById('loginFormModal').style.display = t==='login'?'block':'none';
+        document.getElementById('registerFormModal').style.display = t==='register'?'block':'none';
+        document.getElementById('loginMsg').innerHTML = '';
+    }
+
+    async function handleLoginModal(e) {
         e.preventDefault();
-        const username = document.getElementById('loginUsername').value.trim();
-        const password = document.getElementById('loginPassword').value;
-        const btn = document.getElementById('loginBtn');
+        const btn = document.getElementById('loginBtnModal');
         btn.textContent = '登录中...'; btn.disabled = true;
         try {
-            const res = await fetch(`${API_BASE}/api/login`, {
+            const res = await fetch(API_BASE + '/api/login', {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({username, password})
+                body:JSON.stringify({username:document.getElementById('loginUserModal').value.trim(),password:document.getElementById('loginPassModal').value})
             });
             const data = await res.json();
             if (data.success) {
                 currentUser = data.user;
                 localStorage.setItem('jiaowu_user', JSON.stringify(currentUser));
-                document.getElementById('loginPage').style.display = 'none';
-                document.getElementById('mainPage').style.display = 'flex';
-                initMainPage();
-                toast('登录成功！欢迎回来，' + currentUser.name, 'success');
+                updateHeaderUI();
+                closeLoginModal();
+                toast('登录成功！欢迎，' + currentUser.name, 'success');
             } else {
-                toast(data.message || '登录失败', 'error');
+                document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">' + (data.message||'登录失败') + '</div>';
             }
-        } catch (err) {
-            toast('网络错误，请确认后端已启动', 'error');
-        }
+        } catch (e) { document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">网络错误</div>'; }
         btn.textContent = '登 录'; btn.disabled = false;
     }
 
-    async function handleRegister(e) {
+    async function handleRegisterModal(e) {
         e.preventDefault();
-        const pwd = document.getElementById('regPassword').value;
-        const pwd2 = document.getElementById('regPassword2').value;
-        if (pwd !== pwd2) { toast('两次密码不一致', 'error'); return; }
-        const body = {
-            username: document.getElementById('regStudentId').value.trim(),
-            password: pwd,
-            name: document.getElementById('regName').value.trim(),
-            gender: document.getElementById('regGender').value,
-            department: document.getElementById('regDepartment').value.trim(),
-            major: document.getElementById('regMajor').value.trim(),
-            enrollYear: document.getElementById('regEnrollYear').value.trim(),
-            role: 'student', className: ''
-        };
+        const pwd = document.getElementById('regPwd').value;
+        if (pwd.length < 6) { document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">密码至少6位</div>'; return; }
         try {
-            const res = await fetch(`${API_BASE}/api/register`, {
+            const res = await fetch(API_BASE + '/api/register', {
                 method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify(body)
+                body:JSON.stringify({
+                    username:document.getElementById('regSid').value.trim(),
+                    password:pwd,
+                    name:document.getElementById('regName').value.trim(),
+                    gender:document.getElementById('regGender').value,
+                    department:document.getElementById('regDept').value.trim(),
+                    role:'student',enrollYear:'2024'
+                })
             });
             const data = await res.json();
             if (data.success) {
                 toast('注册成功！请登录', 'success');
                 switchLoginTab('login');
-                document.getElementById('loginUsername').value = body.username;
-                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginUserModal').value = document.getElementById('regSid').value.trim();
             } else {
-                toast(data.message || '注册失败', 'error');
+                document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">' + (data.message||'注册失败') + '</div>';
             }
-        } catch (err) {
-            toast('网络错误', 'error');
+        } catch (e) { document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">网络错误</div>'; }
+    }
+
+    // ==================== UI 更新 ====================
+    function updateHeaderUI() {
+        if (currentUser) {
+            document.getElementById('headerNotLoggedIn').style.display = 'none';
+            document.getElementById('headerLoggedIn').style.display = 'flex';
+            document.getElementById('headerAvatar').textContent = currentUser.name.charAt(0);
+            document.getElementById('headerName').textContent = currentUser.name;
+        } else {
+            document.getElementById('headerNotLoggedIn').style.display = 'inline';
+            document.getElementById('headerLoggedIn').style.display = 'none';
         }
     }
 
     function logout() {
         localStorage.removeItem('jiaowu_user');
         currentUser = null;
-        document.getElementById('loginPage').style.display = 'flex';
-        document.getElementById('mainPage').style.display = 'none';
+        allCourses=[];allGrades=[];allExams=[];allNotices=[];allStudents=[];allUsers=[];
+        updateHeaderUI();
+        toast('已退出登录', 'info');
     }
 
-    // ==================== 数据加载 ====================
-    async function loadData() {
+    // ==================== 进入教务系统 ====================
+    function enterJiaowu() {
+        if (!currentUser) { showLoginModal(); return; }
+        document.body.classList.add('jiaowu');
+        document.getElementById('jiaowuMain').style.display = 'flex';
+        document.getElementById('mainPage').style.display = 'flex';
+        initJiaowu();
+    }
+
+    function backToPortal() {
+        document.body.classList.remove('jiaowu');
+        document.getElementById('jiaowuMain').style.display = 'none';
+    }
+
+    // ==================== 通知详情弹窗 ====================
+    function showNoticeDetail(id) {
+        const n = allNotices.find(x => x.id === id);
+        if (!n) return;
+        document.getElementById('modalContainer').innerHTML = `
+            <div class="modal-overlay" onclick="this.remove()">
+                <div class="detail-modal" onclick="event.stopPropagation()">
+                    <h3>${n.title}</h3>
+                    <div class="meta">${n.date} | ${n.publisher}</div>
+                    <div class="content">${n.content}</div>
+                    <br><button class="btn btn-login" onclick="this.closest('.modal-overlay').remove()">关闭</button>
+                </div>
+            </div>
+        `;
+    }
+
+    // ==================== 加载首页通知 ====================
+    async function loadPortalNotices() {
         try {
-            const [courses, grades, exams, notices, students, users] = await Promise.all([
-                fetch(`${API_BASE}/api/courses`).then(r=>r.json()),
-                fetch(`${API_BASE}/api/admin/grades`).then(r=>r.json()),
-                fetch(`${API_BASE}/api/exams/0`).then(r=>r.json()),
-                fetch(`${API_BASE}/api/notices`).then(r=>r.json()),
-                fetch(`${API_BASE}/api/admin/students`).then(r=>r.json()),
-                fetch(`${API_BASE}/api/admin/users`).then(r=>r.json())
-            ]);
-            allCourses = courses.data || [];
-            allGrades = grades.data || [];
-            allExams = exams.data || [];
-            allNotices = notices.data || [];
-            allStudents = students.data || [];
-            allUsers = users.data || [];
-        } catch (e) { console.error('数据加载失败', e); }
+            const res = await fetch(API_BASE + '/api/notices');
+            const data = await res.json();
+            allNotices = data.data || [];
+            const list = document.getElementById('noticeList');
+            if (list && allNotices.length > 0) {
+                list.innerHTML = allNotices.slice(0, 8).map(n => `
+                    <div class="notice-item" onclick="showNoticeDetail('${n.id}')">
+                        <span class="notice-dot"></span>
+                        <span class="notice-title">${n.title}</span>
+                        <span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span>
+                        <span class="notice-date">${n.date}</span>
+                    </div>
+                `).join('');
+            }
+        } catch (e) {}
     }
 
-    // ==================== 主页初始化 ====================
-    function initMainPage() {
+    // ==================== 教务系统 ====================
+    async function loadJiaowuData() {
+        try {
+            const [c,g,e,n,s,u] = await Promise.all([
+                fetch(API_BASE+'/api/courses').then(r=>r.json()),
+                fetch(API_BASE+'/api/admin/grades').then(r=>r.json()),
+                fetch(API_BASE+'/api/exams/0').then(r=>r.json()),
+                fetch(API_BASE+'/api/notices').then(r=>r.json()),
+                fetch(API_BASE+'/api/admin/students').then(r=>r.json()),
+                fetch(API_BASE+'/api/admin/users').then(r=>r.json())
+            ]);
+            allCourses=c.data||[];allGrades=g.data||[];allExams=e.data||[];allNotices=n.data||[];allStudents=s.data||[];allUsers=u.data||[];
+        } catch(e){}
+    }
+
+    function initJiaowu() {
         document.getElementById('sidebarName').textContent = currentUser.name;
         document.getElementById('sidebarId').textContent = currentUser.studentId;
         document.getElementById('sidebarAvatar').textContent = currentUser.name.charAt(0);
-        document.getElementById('sidebarRole').textContent = currentUser.role === 'admin' ? '管理端' : '学生端';
+        document.getElementById('sidebarRole').textContent = currentUser.role==='admin'?'管理端':'学生端';
         document.getElementById('welcomeName').textContent = currentUser.name + ' 同学';
 
         const isAdmin = currentUser.role === 'admin';
         document.getElementById('studentNav').style.display = isAdmin ? 'none' : 'block';
         document.getElementById('adminNav').style.display = isAdmin ? 'block' : 'none';
 
-        // 侧边栏导航
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
             item.classList.remove('active');
             item.onclick = function() { navigateTo(this.dataset.page); };
         });
-        // 默认首页
-        const defaultPage = isAdmin ? 'adminStudents' : 'dashboard';
-        navigateTo(defaultPage);
-
-        loadData().then(() => {
-            renderDashboard();
-            renderProfile();
-            renderSchedule();
-            renderGrades();
-            renderCourseSelection();
-            renderExams();
-            renderNotices();
-            if (isAdmin) {
-                renderAdminStudents();
-                renderAdminCourses();
-                renderAdminGrades();
-                renderAdminNotices();
-                renderAdminExams();
-            }
+        navigateTo(isAdmin ? 'adminStudents' : 'dashboard');
+        loadJiaowuData().then(() => {
+            renderDashboard();renderProfile();renderSchedule();renderGrades();
+            renderCourseSelection();renderExams();renderNotices();
+            if(isAdmin){renderAdminStudents();renderAdminCourses();renderAdminGrades();renderAdminNotices();renderAdminExams();}
         });
     }
 
@@ -666,578 +1370,138 @@
         const target = document.getElementById('page-' + page);
         if (target) target.classList.add('active');
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(n => n.classList.remove('active'));
-        const navItem = document.querySelector(`.nav-item[data-page="${page}"]`);
-        if (navItem) navItem.classList.add('active');
+        const ni = document.querySelector(`.nav-item[data-page="${page}"]`);
+        if (ni) ni.classList.add('active');
         window.location.hash = page;
-        // 刷新数据
-        if (page === 'dashboard') renderDashboard();
-        if (page === 'grades') renderGrades();
-        if (page === 'selection') renderCourseSelection();
-        if (page === 'adminStudents') renderAdminStudents();
-        if (page === 'adminGrades') renderAdminGrades();
     }
 
-    // ==================== 首页 ====================
+    // 教务系统内部渲染函数（复用之前逻辑的简化版）
     function renderDashboard() {
         const myGrades = allGrades.filter(g => g.studentId === currentUser.studentId);
-        const totalCredits = myGrades.reduce((s,g)=>s+g.credit,0);
-        const avgGPA = myGrades.length ? (myGrades.reduce((s,g)=>s+g.gpa*g.credit,0)/totalCredits).toFixed(2) : '0.00';
-        const courseCount = allCourses.length;
-        const noticeCount = allNotices.length;
-
+        const tc = myGrades.reduce((s,g)=>s+g.credit,0);
+        const ag = myGrades.length ? (myGrades.reduce((s,g)=>s+g.gpa*g.credit,0)/tc).toFixed(2) : '0.00';
         document.getElementById('dashboardStats').innerHTML = `
-            <div class="stat-card"><div class="stat-icon" style="background:#E8F3FF;color:#165DFF;"><i class="fa fa-book-open"></i></div><div><div class="stat-value">${courseCount}</div><div class="stat-label">可选课程总数</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:#E8FFEA;color:#00B42A;"><i class="fa fa-star"></i></div><div><div class="stat-value">${avgGPA}</div><div class="stat-label">平均绩点</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:#FFF7E8;color:#FF7D00;"><i class="fa fa-graduation-cap"></i></div><div><div class="stat-value">${totalCredits.toFixed(1)}</div><div class="stat-label">已修学分</div></div></div>
-            <div class="stat-card"><div class="stat-icon" style="background:#F5E8FF;color:#722ED1;"><i class="fa fa-bullhorn"></i></div><div><div class="stat-value">${noticeCount}</div><div class="stat-label">通知公告</div></div></div>
-        `;
-
-        const recentNotices = allNotices.slice(0, 5);
+            <div class="stat-card"><div class="stat-icon" style="background:#E8F3FF;color:#165DFF;"><i class="fa fa-book-open"></i></div><div><div class="stat-value">${allCourses.length}</div><div class="stat-label">课程总数</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:#E8FFEA;color:#00B42A;"><i class="fa fa-star"></i></div><div><div class="stat-value">${ag}</div><div class="stat-label">平均绩点</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:#FFF7E8;color:#FF7D00;"><i class="fa fa-graduation-cap"></i></div><div><div class="stat-value">${tc.toFixed(1)}</div><div class="stat-label">已修学分</div></div></div>
+            <div class="stat-card"><div class="stat-icon" style="background:#F5E8FF;color:#722ED1;"><i class="fa fa-bullhorn"></i></div><div><div class="stat-value">${allNotices.length}</div><div class="stat-label">通知公告</div></div></div>`;
         document.getElementById('dashboardGrid').innerHTML = `
-            <div class="card"><div class="card-header"><h3><i class="fa fa-user"></i> 个人信息</h3></div>
-                <div style="line-height:2.2;font-size:14px;">
-                    <div><strong>姓名：</strong>${currentUser.name}</div>
-                    <div><strong>学号：</strong>${currentUser.studentId}</div>
-                    <div><strong>院系：</strong>${currentUser.department || '待完善'}</div>
-                    <div><strong>专业：</strong>${currentUser.major || '待完善'}</div>
-                    <div><strong>班级：</strong>${currentUser.className || '待完善'}</div>
-                </div>
-            </div>
-            <div class="card"><div class="card-header"><h3><i class="fa fa-bullhorn"></i> 最新通知</h3></div>
-                <div class="notice-list">${recentNotices.map(n => `
-                    <div class="notice-item" onclick="showNoticeDetail('${n.id}')">
-                        <span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span>
-                        <span style="flex:1;font-size:14px;">${n.title}</span>
-                        <span class="notice-date">${n.date}</span>
-                    </div>`).join('')}</div>
-            </div>
-        `;
+            <div class="card"><div class="card-header"><h3><i class="fa fa-user"></i> 个人信息</h3></div><div style="line-height:2.2;font-size:14px;"><div><strong>姓名：</strong>${currentUser.name}</div><div><strong>学号：</strong>${currentUser.studentId}</div><div><strong>院系：</strong>${currentUser.department||'待完善'}</div><div><strong>专业：</strong>${currentUser.major||'待完善'}</div></div></div>
+            <div class="card"><div class="card-header"><h3><i class="fa fa-bullhorn"></i> 最新通知</h3></div><div class="notice-list">${allNotices.slice(0,5).map(n=>`<div class="notice-item" onclick="showNoticeDetail('${n.id}')"><span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span><span style="flex:1;font-size:14px;">${n.title}</span><span class="notice-date">${n.date}</span></div>`).join('')}</div></div>`;
     }
 
-    // ==================== 个人信息 ====================
     function renderProfile() {
-        const student = allStudents.find(s => s.studentId === currentUser.studentId) || {};
+        const s = allStudents.find(x=>x.studentId===currentUser.studentId)||{};
         document.getElementById('profileCard').innerHTML = `
             <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;line-height:2.2;font-size:14px;">
-                <div><strong>学号：</strong>${student.studentId || currentUser.studentId}</div>
-                <div><strong>姓名：</strong>${student.name || currentUser.name}</div>
-                <div><strong>性别：</strong>${student.gender || currentUser.gender || ''}</div>
-                <div><strong>院系：</strong>${student.department || currentUser.department || ''}</div>
-                <div><strong>专业：</strong>${student.major || currentUser.major || ''}</div>
-                <div><strong>班级：</strong>${student.className || currentUser.className || ''}</div>
-                <div><strong>入学年份：</strong>${student.enrollYear || currentUser.enrollYear || ''}</div>
-                <div><strong>出生日期：</strong>${student.birthDate || '未填写'}</div>
-                <div><strong>身份证号：</strong>${student.idCard || '未填写'}</div>
-                <div><strong>联系电话：</strong>${student.phone || '未填写'}</div>
-                <div><strong>家庭地址：</strong>${student.address || '未填写'}</div>
-                <div><strong>学籍状态：</strong><span class="badge badge-green">${student.status || '在读'}</span></div>
-            </div>
-            <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
-                <h4 style="margin-bottom:12px;">修改密码</h4>
-                <form onsubmit="changePassword(event)" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
-                    <div class="form-group" style="margin-bottom:0;"><label>原密码</label><input type="password" id="oldPwd" required style="height:38px;"></div>
-                    <div class="form-group" style="margin-bottom:0;"><label>新密码</label><input type="password" id="newPwd" required minlength="6" style="height:38px;"></div>
-                    <div class="form-group" style="margin-bottom:0;"><label>确认新密码</label><input type="password" id="newPwd2" required style="height:38px;"></div>
-                    <button type="submit" class="btn btn-primary btn-sm">修改密码</button>
-                </form>
-            </div>
-        `;
+                <div><strong>学号：</strong>${s.studentId||currentUser.studentId}</div><div><strong>姓名：</strong>${s.name||currentUser.name}</div>
+                <div><strong>性别：</strong>${s.gender||''}</div><div><strong>院系：</strong>${s.department||currentUser.department||''}</div>
+                <div><strong>专业：</strong>${s.major||currentUser.major||''}</div><div><strong>班级：</strong>${s.className||currentUser.className||''}</div>
+                <div><strong>入学年份：</strong>${s.enrollYear||''}</div><div><strong>学籍状态：</strong><span class="badge badge-green">${s.status||'在读'}</span></div>
+            </div>`;
     }
 
-    async function changePassword(e) {
-        e.preventDefault();
-        const oldPwd = document.getElementById('oldPwd').value;
-        const newP = document.getElementById('newPwd').value;
-        const newP2 = document.getElementById('newPwd2').value;
-        if (newP !== newP2) { toast('两次密码不一致', 'error'); return; }
-        try {
-            const res = await fetch(`${API_BASE}/api/change-password`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({username:currentUser.username, oldPassword:oldPwd, newPassword:newP})
-            });
-            const data = await res.json();
-            toast(data.message, data.success?'success':'error');
-            if (data.success) { document.getElementById('oldPwd').value=''; document.getElementById('newPwd').value=''; document.getElementById('newPwd2').value=''; }
-        } catch (e) { toast('网络错误', 'error'); }
-    }
-
-    // ==================== 课表 ====================
     function renderSchedule() {
-        const dept = currentUser.department || '';
-        const courses = allCourses.filter(c =>
-            c.type === '必修' ? (c.department === dept || c.department === '公共课') : true
-        );
-        const days = ['周一','周二','周三','周四','周五'];
-        const periods = ['1-2节','3-4节','5-6节','7-8节'];
-        const colorMap = { '数学':'math','英语':'eng','程序':'cs','数据':'cs','计算':'cs','Python':'cs','马克':'polit','思想':'polit','中国':'polit','物理':'phy','大学物理':'phy','体育':'other','心理':'other','日语':'other','书法':'other','管理':'other' };
-        function getColorClass(name) {
-            for (let k in colorMap) { if (name.includes(k)) return colorMap[k]; }
-            return 'other';
-        }
-        let html = '<table><thead><tr><th style="width:60px;">节次</th>' + days.map(d => `<th>${d}</th>`).join('') + '</tr></thead><tbody>';
-        periods.forEach(p => {
-            html += '<tr><td style="text-align:center;font-weight:600;background:#FAFBFC;">' + p + '</td>';
-            days.forEach((d, di) => {
-                html += '<td>';
-                courses.forEach(c => {
-                    if (c.time && c.time.includes(d) && c.time.includes(p)) {
-                        html += `<div class="course-cell ${getColorClass(c.name)}" title="${c.teacher} | ${c.location}">${c.name}<br><small>${c.teacher}</small><br><small>${c.location}</small></div>`;
-                    }
-                });
-                html += '</td>';
-            });
-            html += '</tr>';
-        });
-        html += '</tbody></table>';
-        document.getElementById('scheduleTable').innerHTML = html;
+        const dept = currentUser.department||'';
+        const courses = allCourses.filter(c=>c.type==='必修'?(c.department===dept||c.department==='公共课'):true);
+        const days=['周一','周二','周三','周四','周五'], periods=['1-2节','3-4节','5-6节','7-8节'];
+        const cm={'数学':'math','英语':'eng','程序':'cs','数据':'cs','计算':'cs','马克':'polit','中国':'polit','物理':'phy','体育':'other','心理':'other','日语':'other','书法':'other','管理':'other'};
+        function cc(n){for(let k in cm)if(n.includes(k))return cm[k];return'other';}
+        document.getElementById('scheduleTable').innerHTML = '<table><thead><tr><th style="width:60px;">节次</th>'+days.map(d=>`<th>${d}</th>`).join('')+'</tr></thead><tbody>'+periods.map(p=>'<tr><td style="text-align:center;font-weight:600;background:#FAFBFC;">'+p+'</td>'+days.map(d=>'<td>'+courses.filter(c=>c.time&&c.time.includes(d)&&c.time.includes(p)).map(c=>`<div class="course-cell ${cc(c.name)}" title="${c.teacher}|${c.location}">${c.name}<br><small>${c.teacher}</small><br><small>${c.location}</small></div>`).join('')+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
     }
 
-    // ==================== 成绩 ====================
     function renderGrades() {
-        const myGrades = allGrades.filter(g => g.studentId === currentUser.studentId);
-        const semesters = [...new Set(myGrades.map(g => g.semester))].sort().reverse();
-        const sel = document.getElementById('gradeSemesterFilter');
-        sel.innerHTML = '<option value="">全部学期</option>' + semesters.map(s => `<option value="${s}">${s}</option>`).join('');
-        const selectedSemester = sel.value;
-
-        const filtered = selectedSemester ? myGrades.filter(g => g.semester === selectedSemester) : myGrades;
-        const totalCredit = filtered.reduce((s,g)=>s+g.credit,0);
-        const weightedGPA = filtered.reduce((s,g)=>s+g.gpa*g.credit,0);
-        const avgGPA = totalCredit ? (weightedGPA/totalCredit).toFixed(2) : '0.00';
-
-        document.getElementById('gradesTable').innerHTML = `
-            <table><thead><tr><th>学期</th><th>课程名称</th><th>学分</th><th>平时成绩</th><th>期末成绩</th><th>总评</th><th>绩点</th><th>排名</th></tr></thead><tbody>
-            ${filtered.map(g => `<tr>
-                <td>${g.semester}</td><td>${g.courseName}</td><td>${g.credit}</td>
-                <td>${g.regularScore}</td><td>${g.examScore}</td>
-                <td><strong>${g.totalScore}</strong></td>
-                <td><span class="badge ${g.gpa>=3.7?'badge-green':g.gpa>=2.7?'badge-blue':g.gpa>=1.7?'badge-orange':'badge-red'}">${g.gpa.toFixed(1)}</span></td>
-                <td>${g.rank}/${g.rank+20}</td>
-            </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-secondary);">暂无成绩数据</td></tr>'}
-            </tbody></table>
-        `;
-        document.getElementById('gradesSummary').innerHTML = `<strong>📊 ${selectedSemester||'全部学期'}汇总：</strong> 总学分 <strong>${totalCredit.toFixed(1)}</strong> | 加权平均绩点 <strong>${avgGPA}</strong> | 课程数 <strong>${filtered.length}</strong>`;
+        const mg=allGrades.filter(g=>g.studentId===currentUser.studentId);
+        const sems=[...new Set(mg.map(g=>g.semester))].sort().reverse();
+        const sel=document.getElementById('gradeSemesterFilter');
+        if(sel)sel.innerHTML='<option value="">全部学期</option>'+sems.map(s=>`<option value="${s}">${s}</option>`).join('');
+        const f=sel&&sel.value?mg.filter(g=>g.semester===sel.value):mg;
+        const tc=f.reduce((s,g)=>s+g.credit,0),wg=f.reduce((s,g)=>s+g.gpa*g.credit,0);
+        const ag=tc?(wg/tc).toFixed(2):'0.00';
+        document.getElementById('gradesTable').innerHTML='<table><thead><tr><th>学期</th><th>课程</th><th>学分</th><th>平时</th><th>期末</th><th>总评</th><th>绩点</th></tr></thead><tbody>'+f.map(g=>`<tr><td>${g.semester}</td><td>${g.courseName}</td><td>${g.credit}</td><td>${g.regularScore}</td><td>${g.examScore}</td><td><strong>${g.totalScore}</strong></td><td><span class="badge ${g.gpa>=3.7?'badge-green':g.gpa>=2.7?'badge-blue':'badge-orange'}">${g.gpa.toFixed(1)}</span></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:30px;">暂无成绩</td></tr>' + '</tbody></table>';
+        document.getElementById('gradesSummary').innerHTML=`<strong>📊 汇总：</strong> 总学分 <strong>${tc.toFixed(1)}</strong> | 加权平均绩点 <strong>${ag}</strong> | 课程数 <strong>${f.length}</strong>`;
     }
 
-    // ==================== 选课 ====================
     function renderCourseSelection() {
-        const myCourses = allCourses.filter(c => {
-            // 简化：同院系的必修课 + 公共课必修 + 全部选修
-            const dept = currentUser.department || '';
-            return c.type==='必修' ? (c.department===dept||c.department==='公共课') : true;
-        });
-        const selected = allCourses.filter(c => c.selected > 0);
-        document.getElementById('coursesTable').innerHTML = `
-            <table><thead><tr><th>课程编号</th><th>课程名称</th><th>教师</th><th>学分</th><th>类型</th><th>时间</th><th>教室</th><th>容量</th><th>操作</th></tr></thead><tbody>
-            ${myCourses.map(c => `<tr>
-                <td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td>${c.credit}</td>
-                <td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td>
-                <td>${c.time}</td><td>${c.location}</td>
-                <td>${c.selected}/${c.capacity}</td>
-                <td>${c.selected>=c.capacity ? '<span class="badge badge-red">已满</span>' : `<button class="btn btn-primary btn-xs" onclick="selectCourse('${c.id}')">选课</button>`}</td>
-            </tr>`).join('')}
-            </tbody></table>
-        `;
-        document.getElementById('myCoursesTable').innerHTML = `
-            <table><thead><tr><th>课程编号</th><th>课程名称</th><th>教师</th><th>学分</th><th>类型</th><th>时间</th><th>教室</th><th>操作</th></tr></thead><tbody>
-            ${selected.map(c => `<tr>
-                <td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td>${c.credit}</td>
-                <td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td>
-                <td>${c.time}</td><td>${c.location}</td>
-                <td><button class="btn btn-danger btn-xs" onclick="dropCourse('${c.id}')">退课</button></td>
-            </tr>`).join('') || '<tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text-secondary);">还没有选课</td></tr>'}
-            </tbody></table>
-        `;
+        const mc=allCourses.filter(c=>{const d=currentUser.department||'';return c.type==='必修'?(c.department===d||c.department==='公共课'):true;});
+        document.getElementById('coursesTable').innerHTML='<table><thead><tr><th>编号</th><th>课程</th><th>教师</th><th>学分</th><th>类型</th><th>时间</th><th>容量</th><th>操作</th></tr></thead><tbody>'+mc.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td>${c.credit}</td><td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td><td>${c.time}</td><td>${c.selected}/${c.capacity}</td><td>${c.selected>=c.capacity?'<span class="badge badge-red">已满</span>':`<button class="btn btn-primary btn-xs" onclick="selectCourse('${c.id}')">选课</button>`}</td></tr>`).join('')+'</tbody></table>';
+        document.getElementById('myCoursesTable').innerHTML='<table><thead><tr><th>编号</th><th>课程</th><th>教师</th><th>学分</th><th>类型</th><th>时间</th><th>操作</th></tr></thead><tbody>'+(allCourses.filter(c=>c.selected>0).map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td>${c.credit}</td><td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td><td>${c.time}</td><td><button class="btn btn-danger btn-xs" onclick="dropCourse('${c.id}')">退课</button></td></tr>`).join('')||'<tr><td colspan="7" style="text-align:center;padding:20px;">还没有选课</td></tr>')+'</tbody></table>';
     }
 
-    async function selectCourse(courseId) {
-        try {
-            const res = await fetch(`${API_BASE}/api/select-course`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({studentId:currentUser.studentId, courseId})
-            });
-            const data = await res.json();
-            toast(data.message, data.success?'success':'error');
-            if (data.success) { await loadData(); renderCourseSelection(); }
-        } catch (e) { toast('网络错误', 'error'); }
+    async function selectCourse(id){try{const r=await fetch(API_BASE+'/api/select-course',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({studentId:currentUser.studentId,courseId:id})});const d=await r.json();toast(d.message,d.success?'success':'error');if(d.success){await loadJiaowuData();renderCourseSelection();}}catch(e){}}
+    async function dropCourse(id){try{const r=await fetch(API_BASE+'/api/drop-course',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({studentId:currentUser.studentId,courseId:id})});const d=await r.json();toast(d.message,d.success?'success':'error');if(d.success){await loadJiaowuData();renderCourseSelection();}}catch(e){}}
+
+    function renderExams(){document.getElementById('examsTable').innerHTML='<table><thead><tr><th>ID</th><th>课程</th><th>日期</th><th>时间</th><th>考场</th><th>座位</th></tr></thead><tbody>'+allExams.map(e=>`<tr><td>${e.id}</td><td><strong>${e.courseName}</strong></td><td>${e.date}</td><td>${e.time}</td><td>${e.location}</td><td>${e.seatNo}</td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:30px;">暂无考试安排</td></tr>'+'</tbody></table>';}
+    function renderNotices(){document.getElementById('noticesList').innerHTML=allNotices.map(n=>`<div class="notice-item" onclick="showNoticeDetail('${n.id}')"><span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span><div style="flex:1;"><div style="font-weight:600;font-size:14px;">${n.title}</div><div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">${n.publisher}</div></div><span class="notice-date">${n.date}</span></div>`).join('');}
+
+    // 管理端渲染（简化）
+    function renderAdminStudents(){document.getElementById('adminStudentsTable').innerHTML='<table><thead><tr><th>学号</th><th>姓名</th><th>性别</th><th>院系</th><th>专业</th><th>状态</th><th>操作</th></tr></thead><tbody>'+allStudents.map(s=>`<tr><td>${s.studentId}</td><td>${s.name}</td><td>${s.gender}</td><td>${s.department}</td><td>${s.major}</td><td><span class="badge badge-green">${s.status||'在读'}</span></td><td><button class="btn btn-danger btn-xs" onclick="deleteStudent('${s.studentId}')">删除</button></td></tr>`).join('')+'</tbody></table>';}
+    function renderAdminCourses(){document.getElementById('adminCoursesTable').innerHTML='<table><thead><tr><th>ID</th><th>名称</th><th>教师</th><th>学分</th><th>类型</th><th>操作</th></tr></thead><tbody>'+allCourses.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td>${c.credit}</td><td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td><td><button class="btn btn-outline btn-xs" onclick="editCourse('${c.id}')">编辑</button> <button class="btn btn-danger btn-xs" onclick="deleteCourse('${c.id}')">删除</button></td></tr>`).join('')+'</tbody></table>';}
+    function renderAdminGrades(){document.getElementById('adminGradesTable').innerHTML='<table><thead><tr><th>学号</th><th>课程</th><th>学期</th><th>总评</th><th>绩点</th><th>操作</th></tr></thead><tbody>'+allGrades.map(g=>`<tr><td>${g.studentId}</td><td>${g.courseName}</td><td>${g.semester}</td><td>${g.totalScore}</td><td>${g.gpa.toFixed(1)}</td><td><button class="btn btn-outline btn-xs" onclick="editGrade('${g.studentId}','${g.courseId}')">编辑</button></td></tr>`).join('')||'<tr><td colspan="6" style="text-align:center;padding:30px;">暂无成绩</td></tr>'+'</tbody></table>';}
+    function renderAdminNotices(){document.getElementById('adminNoticesList').innerHTML=allNotices.map(n=>`<div class="notice-item"><span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span><div style="flex:1;"><div style="font-weight:600;">${n.title}</div><div style="font-size:12px;color:var(--text-secondary);">${n.date}|${n.publisher}</div></div><button class="btn btn-danger btn-xs" onclick="deleteNotice('${n.id}')">删除</button></div>`).join('');}
+    function renderAdminExams(){document.getElementById('adminExamsTable').innerHTML='<table><thead><tr><th>ID</th><th>课程</th><th>日期</th><th>考场</th><th>操作</th></tr></thead><tbody>'+allExams.map(e=>`<tr><td>${e.id}</td><td>${e.courseName}</td><td>${e.date}</td><td>${e.location}</td><td><button class="btn btn-danger btn-xs" onclick="deleteExam('${e.id}')">删除</button></td></tr>`).join('')+'</tbody></table>';}
+
+    async function deleteStudent(sid){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/users/'+sid,{method:'DELETE'});toast('已删除','success');await loadJiaowuData();renderAdminStudents();}
+    async function deleteCourse(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/courses/'+id,{method:'DELETE'});toast('已删除','success');await loadJiaowuData();renderAdminCourses();renderCourseSelection();}
+    async function deleteNotice(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/notices/'+id,{method:'DELETE'});toast('已删除','success');await loadJiaowuData();renderAdminNotices();renderNotices();}
+    async function deleteExam(id){if(!confirm('确认删除？'))return;await fetch(API_BASE+'/api/admin/exams/'+id,{method:'DELETE'});toast('已删除','success');await loadJiaowuData();renderAdminExams();renderExams();}
+
+    // 管理端弹窗（简化）
+    function showAddCourseModal(){showFormModal('添加课程','course','');}
+    function editCourse(id){showFormModal('编辑课程','course',id);}
+    function showAddGradeModal(){showFormModal('录入成绩','grade','');}
+    function editGrade(sid,cid){showFormModal('编辑成绩','grade',sid+'|'+cid);}
+    function showAddNoticeModal(){showFormModal('发布通知','notice','');}
+    function showAddExamModal(){showFormModal('添加考试','exam','');}
+
+    function showFormModal(title, type, id) {
+        let html='';
+        if(type==='course'){const c=id?allCourses.find(x=>x.id===id)||{}:{};html=`<form onsubmit="saveForm(event,'course','${id}')"><div class="form-row"><div class="form-group"><label>编号</label><input id="f1" value="${c.id||''}" required></div><div class="form-group"><label>名称</label><input id="f2" value="${c.name||''}" required></div></div><div class="form-row"><div class="form-group"><label>教师</label><input id="f3" value="${c.teacher||''}"></div><div class="form-group"><label>学分</label><input id="f4" type="number" step="0.5" value="${c.credit||''}"></div></div><div class="form-row"><div class="form-group"><label>类型</label><select id="f5"><option ${c.type==='必修'?'selected':''}>必修</option><option ${c.type==='选修'?'selected':''}>选修</option></select></div><div class="form-group"><label>院系</label><input id="f6" value="${c.department||''}"></div></div><div class="form-row"><div class="form-group"><label>时间</label><input id="f7" value="${c.time||''}"></div><div class="form-group"><label>教室</label><input id="f8" value="${c.location||''}"></div></div><div class="form-row"><div class="form-group"><label>容量</label><input id="f9" type="number" value="${c.capacity||60}"></div><div class="form-group"><label>学期</label><input id="f10" value="${c.semester||'2023-2024-1'}"></div></div><div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;"><button type="button" class="btn btn-outline" onclick="closeAllModals()">取消</button><button type="submit" class="btn btn-primary">保存</button></div></form>`;}
+        else if(type==='grade'){const parts=id?id.split('|'):[];const g=id?allGrades.find(x=>x.studentId===parts[0]&&x.courseId===parts[1])||{}:{};html=`<form onsubmit="saveForm(event,'grade','${id}')"><div class="form-row"><div class="form-group"><label>学号</label><input id="f1" value="${g.studentId||''}" required></div><div class="form-group"><label>课程ID</label><input id="f2" value="${g.courseId||''}" required></div></div><div class="form-row"><div class="form-group"><label>课程名</label><input id="f3" value="${g.courseName||''}" required></div><div class="form-group"><label>学期</label><input id="f4" value="${g.semester||'2023-2024-1'}"></div></div><div class="form-row"><div class="form-group"><label>学分</label><input id="f5" type="number" step="0.5" value="${g.credit||''}"></div><div class="form-group"><label>总评</label><input id="f6" type="number" value="${g.totalScore||''}"></div></div><div class="form-row"><div class="form-group"><label>绩点</label><input id="f7" type="number" step="0.1" value="${g.gpa||''}"></div><div class="form-group"><label>排名</label><input id="f8" type="number" value="${g.rank||''}"></div></div><div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;"><button type="button" class="btn btn-outline" onclick="closeAllModals()">取消</button><button type="submit" class="btn btn-primary">保存</button></div></form>`;}
+        else if(type==='notice'){html=`<form onsubmit="saveForm(event,'notice','')"><div class="form-group"><label>标题</label><input id="f1" required></div><div class="form-group"><label>内容</label><textarea id="f2" rows="3" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;" required></textarea></div><div class="form-row"><div class="form-group"><label>发布单位</label><input id="f3" value="教务处"></div><div class="form-group"><label>重要程度</label><select id="f4"><option value="true">重要</option><option value="false">一般</option></select></div></div><div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;"><button type="button" class="btn btn-outline" onclick="closeAllModals()">取消</button><button type="submit" class="btn btn-primary">发布</button></div></form>`;}
+        else if(type==='exam'){html=`<form onsubmit="saveForm(event,'exam','')"><div class="form-row"><div class="form-group"><label>课程ID</label><input id="f1" required></div><div class="form-group"><label>课程名</label><input id="f2" required></div></div><div class="form-row"><div class="form-group"><label>日期</label><input id="f3" type="date" required></div><div class="form-group"><label>时间</label><input id="f4" value="09:00-11:00"></div></div><div class="form-row"><div class="form-group"><label>考场</label><input id="f5"></div><div class="form-group"><label>座位号</label><input id="f6"></div></div><div class="modal-footer" style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px;"><button type="button" class="btn btn-outline" onclick="closeAllModals()">取消</button><button type="submit" class="btn btn-primary">保存</button></div></form>`;}
+        document.getElementById('modalContainer').innerHTML=`<div class="modal-overlay"><div class="login-modal" onclick="event.stopPropagation()" style="width:520px;position:relative;"><button class="btn-close" onclick="closeAllModals()" style="color:#333;">&times;</button><h3 style="margin-bottom:20px;font-size:18px;">${title}</h3>${html}</div></div>`;
     }
 
-    async function dropCourse(courseId) {
-        try {
-            const res = await fetch(`${API_BASE}/api/drop-course`, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body: JSON.stringify({studentId:currentUser.studentId, courseId})
-            });
-            const data = await res.json();
-            toast(data.message, data.success?'success':'error');
-            if (data.success) { await loadData(); renderCourseSelection(); }
-        } catch (e) { toast('网络错误', 'error'); }
-    }
+    function closeAllModals(){document.getElementById('modalContainer').innerHTML='';document.getElementById('loginModalContainer').innerHTML='';}
 
-    // ==================== 考试安排 ====================
-    function renderExams() {
-        document.getElementById('examsTable').innerHTML = `
-            <table><thead><tr><th>考试ID</th><th>课程名称</th><th>考试日期</th><th>时间</th><th>考场</th><th>座位号</th></tr></thead><tbody>
-            ${allExams.map(e => `<tr>
-                <td>${e.id}</td><td><strong>${e.courseName}</strong></td>
-                <td>${e.date}</td><td>${e.time}</td><td>${e.location}</td><td>${e.seatNo}</td>
-            </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;padding:30px;">暂无考试安排</td></tr>'}
-            </tbody></table>
-        `;
-    }
-
-    // ==================== 通知 ====================
-    function renderNotices() {
-        document.getElementById('noticesList').innerHTML = allNotices.map(n => `
-            <div class="notice-item" onclick="showNoticeDetail('${n.id}')">
-                <span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span>
-                <div style="flex:1;">
-                    <div style="font-weight:600;font-size:14px;">${n.title}</div>
-                    <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">发布单位：${n.publisher}</div>
-                </div>
-                <span class="notice-date">${n.date}</span>
-            </div>
-        `).join('');
-    }
-
-    function showNoticeDetail(id) {
-        const n = allNotices.find(x => x.id === id);
-        if (!n) return;
-        document.getElementById('modalContainer').innerHTML = `
-            <div class="modal-overlay" onclick="closeModal()">
-                <div class="modal" onclick="event.stopPropagation()">
-                    <h3>${n.title}</h3>
-                    <div style="font-size:12px;color:var(--text-secondary);margin-bottom:16px;">${n.date} | ${n.publisher}</div>
-                    <div style="line-height:1.8;font-size:14px;">${n.content}</div>
-                    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal()">关闭</button></div>
-                </div>
-            </div>
-        `;
-    }
-
-    // ==================== 管理端 ====================
-    function renderAdminStudents() {
-        document.getElementById('adminStudentsTable').innerHTML = `
-            <table><thead><tr><th>学号</th><th>姓名</th><th>性别</th><th>院系</th><th>专业</th><th>班级</th><th>入学年份</th><th>状态</th><th>操作</th></tr></thead><tbody>
-            ${allStudents.map(s => `<tr>
-                <td>${s.studentId}</td><td>${s.name}</td><td>${s.gender}</td>
-                <td>${s.department}</td><td>${s.major}</td><td>${s.className}</td>
-                <td>${s.enrollYear}</td>
-                <td><span class="badge badge-green">${s.status}</span></td>
-                <td><button class="btn btn-danger btn-xs" onclick="deleteStudent('${s.studentId}')">删除</button></td>
-            </tr>`).join('')}
-            </tbody></table>
-        `;
-    }
-
-    async function deleteStudent(studentId) {
-        if (!confirm('确认删除该学生？')) return;
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/users/${studentId}`, { method: 'DELETE' });
-            const data = await res.json();
-            toast(data.message, data.success?'success':'error');
-            if (data.success) { await loadData(); renderAdminStudents(); }
-        } catch (e) { toast('网络错误', 'error'); }
-    }
-
-    function renderAdminCourses() {
-        document.getElementById('adminCoursesTable').innerHTML = `
-            <table><thead><tr><th>ID</th><th>名称</th><th>教师</th><th>学分</th><th>类型</th><th>院系</th><th>时间</th><th>教室</th><th>容量</th><th>操作</th></tr></thead><tbody>
-            ${allCourses.map(c => `<tr>
-                <td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td>${c.credit}</td>
-                <td><span class="badge ${c.type==='必修'?'badge-blue':'badge-purple'}">${c.type}</span></td>
-                <td>${c.department}</td><td>${c.time}</td><td>${c.location}</td><td>${c.selected}/${c.capacity}</td>
-                <td>
-                    <button class="btn btn-outline btn-xs" onclick="editCourse('${c.id}')">编辑</button>
-                    <button class="btn btn-danger btn-xs" onclick="deleteCourse('${c.id}')">删除</button>
-                </td>
-            </tr>`).join('')}
-            </tbody></table>
-        `;
-    }
-
-    function showAddCourseModal() {
-        document.getElementById('modalContainer').innerHTML = `
-            <div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3>添加课程</h3>
-                <form onsubmit="saveCourse(event,'')">
-                    <div class="form-row"><div class="form-group"><label>编号</label><input id="cid" required></div><div class="form-group"><label>名称</label><input id="cname" required></div></div>
-                    <div class="form-row"><div class="form-group"><label>教师</label><input id="cteacher" required></div><div class="form-group"><label>学分</label><input id="ccredit" type="number" step="0.5" required></div></div>
-                    <div class="form-row"><div class="form-group"><label>类型</label><select id="ctype"><option>必修</option><option>选修</option></select></div><div class="form-group"><label>院系</label><input id="cdept"></div></div>
-                    <div class="form-row"><div class="form-group"><label>时间</label><input id="ctime" placeholder="如：周一 1-2节"></div><div class="form-group"><label>教室</label><input id="clocation"></div></div>
-                    <div class="form-row"><div class="form-group"><label>容量</label><input id="ccapacity" type="number"></div><div class="form-group"><label>学期</label><input id="csemester" value="2023-2024-1"></div></div>
-                    <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal()">取消</button><button type="submit" class="btn btn-primary">保存</button></div>
-                </form>
-            </div></div>
-        `;
-    }
-
-    function editCourse(id) {
-        const c = allCourses.find(x => x.id === id);
-        if (!c) return;
-        document.getElementById('modalContainer').innerHTML = `
-            <div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3>编辑课程</h3>
-                <form onsubmit="saveCourse(event,'${id}')">
-                    <div class="form-row"><div class="form-group"><label>编号</label><input id="cid" value="${c.id}" required></div><div class="form-group"><label>名称</label><input id="cname" value="${c.name}" required></div></div>
-                    <div class="form-row"><div class="form-group"><label>教师</label><input id="cteacher" value="${c.teacher}" required></div><div class="form-group"><label>学分</label><input id="ccredit" type="number" step="0.5" value="${c.credit}" required></div></div>
-                    <div class="form-row"><div class="form-group"><label>类型</label><select id="ctype"><option ${c.type==='必修'?'selected':''}>必修</option><option ${c.type==='选修'?'selected':''}>选修</option></select></div><div class="form-group"><label>院系</label><input id="cdept" value="${c.department}"></div></div>
-                    <div class="form-row"><div class="form-group"><label>时间</label><input id="ctime" value="${c.time}"></div><div class="form-group"><label>教室</label><input id="clocation" value="${c.location}"></div></div>
-                    <div class="form-row"><div class="form-group"><label>容量</label><input id="ccapacity" type="number" value="${c.capacity}"></div><div class="form-group"><label>学期</label><input id="csemester" value="${c.semester}"></div></div>
-                    <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal()">取消</button><button type="submit" class="btn btn-primary">保存</button></div>
-                </form>
-            </div></div>
-        `;
-    }
-
-    async function saveCourse(e, id) {
+    async function saveForm(e,type,id){
         e.preventDefault();
-        const body = {
-            id: document.getElementById('cid').value,
-            name: document.getElementById('cname').value,
-            teacher: document.getElementById('cteacher').value,
-            credit: parseFloat(document.getElementById('ccredit').value),
-            type: document.getElementById('ctype').value,
-            department: document.getElementById('cdept').value,
-            time: document.getElementById('ctime').value,
-            location: document.getElementById('clocation').value,
-            capacity: parseInt(document.getElementById('ccapacity').value) || 60,
-            selected: 0,
-            semester: document.getElementById('csemester').value
-        };
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? `${API_BASE}/api/admin/courses/${id}` : `${API_BASE}/api/admin/courses`;
-        try {
-            const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-            const data = await res.json();
-            toast(data.message, 'success');
-            closeModal();
-            await loadData();
-            renderAdminCourses();
-            renderCourseSelection();
-        } catch (e) { toast('操作失败', 'error'); }
+        let body={},url='',method='POST';
+        if(type==='course'){
+            body={id:document.getElementById('f1').value,name:document.getElementById('f2').value,teacher:document.getElementById('f3').value,credit:parseFloat(document.getElementById('f4').value)||0,type:document.getElementById('f5').value,department:document.getElementById('f6').value,time:document.getElementById('f7').value,location:document.getElementById('f8').value,capacity:parseInt(document.getElementById('f9').value)||60,selected:0,semester:document.getElementById('f10').value};
+            if(id){url=API_BASE+'/api/admin/courses/'+id;method='PUT';}else{url=API_BASE+'/api/admin/courses';}
+        }else if(type==='grade'){
+            body={studentId:document.getElementById('f1').value,courseId:document.getElementById('f2').value,courseName:document.getElementById('f3').value,semester:document.getElementById('f4').value,credit:parseFloat(document.getElementById('f5').value)||0,regularScore:0,examScore:0,totalScore:parseInt(document.getElementById('f6').value)||0,gpa:parseFloat(document.getElementById('f7').value)||0,rank:parseInt(document.getElementById('f8').value)||0};
+            url=API_BASE+'/api/admin/grades';
+        }else if(type==='notice'){
+            body={id:'N'+Date.now(),title:document.getElementById('f1').value,content:document.getElementById('f2').value,publisher:document.getElementById('f3').value,important:document.getElementById('f4').value==='true',date:new Date().toISOString().split('T')[0]};
+            url=API_BASE+'/api/admin/notices';
+        }else if(type==='exam'){
+            body={id:'E'+Date.now(),courseId:document.getElementById('f1').value,courseName:document.getElementById('f2').value,date:document.getElementById('f3').value,time:document.getElementById('f4').value,location:document.getElementById('f5').value,seatNo:document.getElementById('f6').value};
+            url=API_BASE+'/api/admin/exams';
+        }
+        try{
+            const res=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+            const data=await res.json();
+            toast(data.message||'保存成功','success');
+            closeAllModals();
+            await loadJiaowuData();
+            if(type==='course'){renderAdminCourses();renderCourseSelection();}
+            if(type==='grade'){renderAdminGrades();renderGrades();}
+            if(type==='notice'){renderAdminNotices();renderNotices();}
+            if(type==='exam'){renderAdminExams();renderExams();}
+        }catch(e){toast('操作失败','error');}
     }
 
-    async function deleteCourse(id) {
-        if (!confirm('确认删除该课程？')) return;
-        try {
-            await fetch(`${API_BASE}/api/admin/courses/${id}`, { method:'DELETE' });
-            toast('删除成功', 'success');
-            await loadData();
-            renderAdminCourses();
-            renderCourseSelection();
-        } catch (e) { toast('删除失败', 'error'); }
-    }
-
-    function renderAdminGrades() {
-        document.getElementById('adminGradesTable').innerHTML = `
-            <table><thead><tr><th>学号</th><th>课程</th><th>学期</th><th>学分</th><th>平时</th><th>期末</th><th>总评</th><th>绩点</th><th>排名</th><th>操作</th></tr></thead><tbody>
-            ${allGrades.map((g,i) => `<tr>
-                <td>${g.studentId}</td><td>${g.courseName}</td><td>${g.semester}</td><td>${g.credit}</td>
-                <td>${g.regularScore}</td><td>${g.examScore}</td><td>${g.totalScore}</td>
-                <td>${g.gpa.toFixed(1)}</td><td>${g.rank}</td>
-                <td><button class="btn btn-outline btn-xs" onclick="editGrade('${g.studentId}','${g.courseId}')">编辑</button></td>
-            </tr>`).join('') || '<tr><td colspan="10" style="text-align:center;padding:30px;">暂无成绩</td></tr>'}
-            </tbody></table>
-        `;
-    }
-
-    function showAddGradeModal() {
-        document.getElementById('modalContainer').innerHTML = `
-            <div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3>录入成绩</h3>
-                <form onsubmit="saveGrade(event,'')">
-                    <div class="form-row"><div class="form-group"><label>学号</label><input id="gsid" required></div><div class="form-group"><label>课程ID</label><input id="gcid" required></div></div>
-                    <div class="form-row"><div class="form-group"><label>课程名</label><input id="gcname" required></div><div class="form-group"><label>学期</label><input id="gsem" value="2023-2024-1"></div></div>
-                    <div class="form-row"><div class="form-group"><label>学分</label><input id="gcredit" type="number" step="0.5" required></div><div class="form-group"><label>平时</label><input id="greg" type="number"></div></div>
-                    <div class="form-row"><div class="form-group"><label>期末</label><input id="gexam" type="number"></div><div class="form-group"><label>总评</label><input id="gtotal" type="number"></div></div>
-                    <div class="form-row"><div class="form-group"><label>绩点</label><input id="ggpa" type="number" step="0.1"></div><div class="form-group"><label>排名</label><input id="grank" type="number"></div></div>
-                    <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal()">取消</button><button type="submit" class="btn btn-primary">保存</button></div>
-                </form>
-            </div></div>
-        `;
-    }
-
-    function editGrade(sid, cid) {
-        const g = allGrades.find(x => x.studentId===sid && x.courseId===cid);
-        if (!g) return;
-        document.getElementById('modalContainer').innerHTML = `
-            <div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3>编辑成绩</h3>
-                <form onsubmit="saveGrade(event,'${sid}','${cid}')">
-                    <div class="form-row"><div class="form-group"><label>学号</label><input id="gsid" value="${g.studentId}" readonly></div><div class="form-group"><label>课程ID</label><input id="gcid" value="${g.courseId}" readonly></div></div>
-                    <div class="form-row"><div class="form-group"><label>课程名</label><input id="gcname" value="${g.courseName}"></div><div class="form-group"><label>学期</label><input id="gsem" value="${g.semester}"></div></div>
-                    <div class="form-row"><div class="form-group"><label>学分</label><input id="gcredit" type="number" step="0.5" value="${g.credit}"></div><div class="form-group"><label>平时</label><input id="greg" type="number" value="${g.regularScore}"></div></div>
-                    <div class="form-row"><div class="form-group"><label>期末</label><input id="gexam" type="number" value="${g.examScore}"></div><div class="form-group"><label>总评</label><input id="gtotal" type="number" value="${g.totalScore}"></div></div>
-                    <div class="form-row"><div class="form-group"><label>绩点</label><input id="ggpa" type="number" step="0.1" value="${g.gpa}"></div><div class="form-group"><label>排名</label><input id="grank" type="number" value="${g.rank}"></div></div>
-                    <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal()">取消</button><button type="submit" class="btn btn-primary">保存</button></div>
-                </form>
-            </div></div>
-        `;
-    }
-
-    async function saveGrade(e, sid, cid) {
-        e.preventDefault();
-        const body = {
-            studentId: document.getElementById('gsid').value,
-            courseId: document.getElementById('gcid').value,
-            courseName: document.getElementById('gcname').value,
-            semester: document.getElementById('gsem').value,
-            credit: parseFloat(document.getElementById('gcredit').value),
-            regularScore: parseInt(document.getElementById('greg').value) || 0,
-            examScore: parseInt(document.getElementById('gexam').value) || 0,
-            totalScore: parseInt(document.getElementById('gtotal').value) || 0,
-            gpa: parseFloat(document.getElementById('ggpa').value) || 0,
-            rank: parseInt(document.getElementById('grank').value) || 0
-        };
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/grades`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
-            });
-            const data = await res.json();
-            toast(data.message, 'success');
-            closeModal();
-            await loadData();
-            renderAdminGrades();
-            renderGrades();
-        } catch (e) { toast('保存失败', 'error'); }
-    }
-
-    function renderAdminNotices() {
-        document.getElementById('adminNoticesList').innerHTML = allNotices.map(n => `
-            <div class="notice-item">
-                <span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span>
-                <div style="flex:1;"><div style="font-weight:600;">${n.title}</div><div style="font-size:12px;color:var(--text-secondary);">${n.date} | ${n.publisher}</div></div>
-                <button class="btn btn-danger btn-xs" onclick="deleteNotice('${n.id}')">删除</button>
-            </div>
-        `).join('');
-    }
-
-    function showAddNoticeModal() {
-        document.getElementById('modalContainer').innerHTML = `
-            <div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3>发布通知</h3>
-                <form onsubmit="saveNotice(event)">
-                    <div class="form-group"><label>标题</label><input id="ntitle" required></div>
-                    <div class="form-group"><label>内容</label><textarea id="ncontent" rows="4" style="width:100%;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);resize:vertical;" required></textarea></div>
-                    <div class="form-row">
-                        <div class="form-group"><label>发布单位</label><input id="npublisher" value="教务处"></div>
-                        <div class="form-group"><label>重要程度</label><select id="nimportant"><option value="true">重要</option><option value="false">一般</option></select></div>
-                    </div>
-                    <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal()">取消</button><button type="submit" class="btn btn-primary">发布</button></div>
-                </form>
-            </div></div>
-        `;
-    }
-
-    async function saveNotice(e) {
-        e.preventDefault();
-        const now = new Date().toISOString().split('T')[0];
-        const body = {
-            id: 'N' + Date.now(),
-            title: document.getElementById('ntitle').value,
-            content: document.getElementById('ncontent').value,
-            publisher: document.getElementById('npublisher').value,
-            important: document.getElementById('nimportant').value === 'true',
-            date: now
-        };
-        try {
-            const res = await fetch(`${API_BASE}/api/admin/notices`, {
-                method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
-            });
-            const data = await res.json();
-            toast(data.message, 'success');
-            closeModal();
-            await loadData();
-            renderAdminNotices();
-            renderNotices();
-        } catch (e) { toast('发布失败', 'error'); }
-    }
-
-    async function deleteNotice(id) {
-        if (!confirm('确认删除该通知？')) return;
-        try {
-            await fetch(`${API_BASE}/api/admin/notices/${id}`, {method:'DELETE'});
-            toast('删除成功', 'success');
-            await loadData();
-            renderAdminNotices();
-            renderNotices();
-        } catch (e) { toast('删除失败', 'error'); }
-    }
-
-    function renderAdminExams() {
-        document.getElementById('adminExamsTable').innerHTML = `
-            <table><thead><tr><th>ID</th><th>课程</th><th>日期</th><th>时间</th><th>考场</th><th>座位号</th><th>操作</th></tr></thead><tbody>
-            ${allExams.map(e => `<tr>
-                <td>${e.id}</td><td>${e.courseName}</td><td>${e.date}</td><td>${e.time}</td><td>${e.location}</td><td>${e.seatNo}</td>
-                <td><button class="btn btn-danger btn-xs" onclick="deleteExam('${e.id}')">删除</button></td>
-            </tr>`).join('')}
-            </tbody></table>
-        `;
-    }
-
-    function showAddExamModal() {
-        document.getElementById('modalContainer').innerHTML = `
-            <div class="modal-overlay" onclick="closeModal()"><div class="modal" onclick="event.stopPropagation()"><h3>添加考试</h3>
-                <form onsubmit="saveExam(event,'')">
-                    <div class="form-row"><div class="form-group"><label>课程ID</label><input id="ecid" required></div><div class="form-group"><label>课程名</label><input id="ecname" required></div></div>
-                    <div class="form-row"><div class="form-group"><label>日期</label><input id="edate" type="date" required></div><div class="form-group"><label>时间</label><input id="etime" value="09:00-11:00"></div></div>
-                    <div class="form-row"><div class="form-group"><label>考场</label><input id="elocation"></div><div class="form-group"><label>座位号</label><input id="eseat"></div></div>
-                    <div class="modal-footer"><button type="button" class="btn btn-outline" onclick="closeModal()">取消</button><button type="submit" class="btn btn-primary">保存</button></div>
-                </form>
-            </div></div>
-        `;
-    }
-
-    async function saveExam(e, id) {
-        e.preventDefault();
-        const body = {
-            id: id || 'E' + Date.now(),
-            courseId: document.getElementById('ecid').value,
-            courseName: document.getElementById('ecname').value,
-            date: document.getElementById('edate').value,
-            time: document.getElementById('etime').value,
-            location: document.getElementById('elocation').value,
-            seatNo: document.getElementById('eseat').value
-        };
-        const method = id ? 'PUT' : 'POST';
-        const url = id ? `${API_BASE}/api/admin/exams/${id}` : `${API_BASE}/api/admin/exams`;
-        try {
-            const res = await fetch(url, {method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
-            const data = await res.json();
-            toast(data.message, 'success');
-            closeModal();
-            await loadData();
-            renderAdminExams();
-            renderExams();
-        } catch (e) { toast('保存失败', 'error'); }
-    }
-
-    async function deleteExam(id) {
-        if (!confirm('确认删除该考试？')) return;
-        try {
-            await fetch(`${API_BASE}/api/admin/exams/${id}`, {method:'DELETE'});
-            toast('删除成功', 'success');
-            await loadData();
-            renderAdminExams();
-            renderExams();
-        } catch (e) { toast('删除失败', 'error'); }
-    }
-
-    function closeModal() {
-        document.getElementById('modalContainer').innerHTML = '';
-    }
-
-    // ==================== 页面恢复 ====================
-    // 检查本地存储的登录状态
+    // ==================== 初始化 ====================
     window.addEventListener('DOMContentLoaded', () => {
         const saved = localStorage.getItem('jiaowu_user');
         if (saved) {
             currentUser = JSON.parse(saved);
-            document.getElementById('loginPage').style.display = 'none';
-            document.getElementById('mainPage').style.display = 'flex';
-            initMainPage();
+            updateHeaderUI();
         }
-        // hash 路由恢复
-        window.addEventListener('hashchange', () => {
-            const page = window.location.hash.replace('#', '');
-            if (page && currentUser) navigateTo(page);
-        });
+        loadPortalNotices();
     });
     </script>
 </body>
