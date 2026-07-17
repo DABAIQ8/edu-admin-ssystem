@@ -2,6 +2,26 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const nodemailer = require('nodemailer');
+
+// QQ邮箱SMTP配置
+const SMTP_CONFIG = {
+  host: 'smtp.qq.com',
+  port: 465,
+  secure: true,
+  auth: { user: '2129474226@qq.com', pass: process.env.QQ_SMTP_PASS || '' }
+};
+
+// 邮件发送
+async function sendEmail(to, subject, html) {
+  if (!SMTP_CONFIG.auth.pass) return false;
+  try {
+    const transporter = nodemailer.createTransport(SMTP_CONFIG);
+    await transporter.sendMail({ from: SMTP_CONFIG.auth.user, to, subject, html });
+    return true;
+  } catch (e) { console.error('邮件发送失败:', e.message); return false; }
+}
 
 const app = express();
 
@@ -9,7 +29,6 @@ const app = express();
 app.use(express.json({ limit: '2mb' }));
 app.use(cors({
   origin: function (origin, callback) {
-    // 允许所有来源（生产环境可收紧）
     if (!origin) return callback(null, true);
     callback(null, true);
   },
@@ -51,7 +70,7 @@ function checkLoginLimit(ip) {
 function recordLoginSuccess(ip) { loginAttempts.delete(ip); }
 
 // ==================== Token 管理 ====================
-const crypto = require('crypto');
+// crypto 已在顶部导入
 const activeTokens = new Map(); // token -> { username, role, createdAt }
 
 function generateToken() {
@@ -201,6 +220,24 @@ let schoolConfig = {
 // 操作日志
 let operationLogs = [];
 
+// 在线用户追踪 + 验证码 + 留言板 + 打赏
+let onlineUsers = new Map(); // userId -> { lastActive, ip, userAgent }
+let emailCodes = new Map(); // email -> { code, expires, userId }
+let messages = []; // { id, userId, userName, content, time }
+let donateInfo = { qrCodeUrl: '', alipayUrl: '', wechatUrl: '', thankYouMsg: '感谢您的支持！' };
+
+// 清理过期在线用户（5分钟无活动视为离线）
+setInterval(() => {
+  const now = Date.now();
+  for (const [uid, v] of onlineUsers) {
+    if (now - v.lastActive > 300000) onlineUsers.delete(uid);
+  }
+  // 清理过期验证码（10分钟）
+  for (const [email, v] of emailCodes) {
+    if (now > v.expires) emailCodes.delete(email);
+  }
+}, 60000);
+
 // ==================== 内存存储（初始化从预设数据拷贝） ====================
 let users = [], students = [], courses = [], grades = [], exams = [], notices = [], myCourses = [];
 
@@ -254,6 +291,8 @@ app.post('/api/login', (req, res) => {
     username: user.username, role: user.role, name: user.name,
     studentId: user.studentId, department: user.department, createdAt: Date.now()
   });
+  // 记录在线
+  onlineUsers.set(user.username, { lastActive: Date.now(), ip, userAgent: req.headers['user-agent'] || '', name: user.name, role: user.role });
   // 清理过期 token（24小时）
   const now = Date.now();
   for (const [k, v] of activeTokens) {
@@ -267,7 +306,7 @@ app.post('/api/login', (req, res) => {
       username: user.username, name: user.name, role: user.role,
       studentId: user.studentId, department: user.department,
       major: user.major, className: user.className, gender: user.gender,
-      enrollYear: user.enrollYear
+      enrollYear: user.enrollYear, email: user.email || ''
     }
   });
 });
@@ -669,9 +708,12 @@ app.get('/api/admin/stats', (req, res) => {
     success: true,
     data: {
       totalStudents: students.filter(s => s.status === '在读').length,
+      totalRegistered: users.filter(u => u.role === 'student').length,
       totalTeachers: users.filter(u => u.role === 'teacher').length,
       totalCourses: courses.length,
       totalGrades: grades.length,
+      onlineCount: onlineUsers.size,
+      onlineUsers: [...onlineUsers.values()].map(v => ({ name: v.name, role: v.role, lastActive: new Date(v.lastActive).toISOString() })),
       departments: [...new Set(students.map(s => s.department).filter(Boolean))],
       studentByDept: [...new Set(students.map(s => s.department).filter(Boolean))].map(d => ({
         department: d,
@@ -679,6 +721,143 @@ app.get('/api/admin/stats', (req, res) => {
       }))
     }
   });
+});
+
+// ==================== 新增 API：邮箱绑定、找回密码、留言、在线统计、打赏 ====================
+
+// 在线状态（公开）
+app.get('/api/online', (req, res) => {
+  res.json({ success: true, data: { count: onlineUsers.size, users: [...onlineUsers.values()].map(v => ({ name: v.name, role: v.role, lastActive: v.lastActive })) } });
+});
+
+// 注册用户统计（公开）
+app.get('/api/user-stats', (req, res) => {
+  res.json({ success: true, data: { totalStudents: users.filter(u => u.role === 'student').length, totalTeachers: users.filter(u => u.role === 'teacher').length, totalRegistered: users.length } });
+});
+
+// 发送邮箱验证码
+app.post('/api/send-code', (req, res) => {
+  const { email, username, type } = req.body; // type: 'bind' | 'reset'
+  if (!email || !email.includes('@')) return res.json({ success: false, message: '请输入有效邮箱' });
+  if (type === 'reset' && !username) return res.json({ success: false, message: '请输入账号' });
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expires = Date.now() + 600000; // 10分钟有效
+  emailCodes.set(email, { code, expires, username, type });
+
+  if (SMTP_CONFIG.auth.pass) {
+    const subject = type === 'bind' ? 'H大学教务系统 - 邮箱绑定验证码' : 'H大学教务系统 - 密码找回验证码';
+    const html = `<div style="max-width:500px;margin:0 auto;font-family:Arial,sans-serif;">
+      <h2 style="color:#8B1A2B;">H大学 教务系统</h2>
+      <p>您的验证码是：</p>
+      <h1 style="font-size:40px;letter-spacing:8px;text-align:center;background:#f5f5f5;padding:20px;border-radius:8px;">${code}</h1>
+      <p>验证码有效期10分钟，请勿泄露。</p>
+      <p style="color:#999;">如果不是您本人的操作，请忽略此邮件。</p>
+    </div>`;
+    sendEmail(email, subject, html).then(ok => {
+      if (ok) res.json({ success: true, message: '验证码已发送到邮箱' });
+      else res.json({ success: true, message: `验证码: ${code} (邮件发送失败，请检查SMTP配置)` });
+    });
+  } else {
+    // 无SMTP时返回验证码（开发模式）
+    res.json({ success: true, message: `验证码: ${code} (未配置SMTP，请注意保管)`, code });
+  }
+});
+
+// 验证验证码
+app.post('/api/verify-code', (req, res) => {
+  const { email, code } = req.body;
+  const record = emailCodes.get(email);
+  if (!record) return res.json({ success: false, message: '未发送验证码或已过期' });
+  if (record.expires < Date.now()) { emailCodes.delete(email); return res.json({ success: false, message: '验证码已过期' }); }
+  if (record.code !== code) return res.json({ success: false, message: '验证码错误' });
+  if (record.type === 'bind') {
+    emailCodes.delete(email);
+    res.json({ success: true, verified: true });
+  } else if (record.type === 'reset') {
+    res.json({ success: true, verified: true });
+  }
+});
+
+// 绑定邮箱
+app.post('/api/bind-email', (req, res) => {
+  const { username, email, code } = req.body;
+  const record = emailCodes.get(email);
+  if (!record || record.code !== code || record.expires < Date.now()) {
+    return res.json({ success: false, message: '验证码无效或已过期' });
+  }
+  const user = findOne(users, 'username', sanitize(username));
+  if (!user) return res.json({ success: false, message: '用户不存在' });
+  user.email = email;
+  emailCodes.delete(email);
+  res.json({ success: true, message: '邮箱绑定成功！' });
+});
+
+// 通过邮箱重置密码
+app.post('/api/reset-password', (req, res) => {
+  const { username, email, code, newPassword } = req.body;
+  const record = emailCodes.get(email);
+  if (!record || record.code !== code || record.expires < Date.now()) {
+    return res.json({ success: false, message: '验证码无效或已过期' });
+  }
+  if (record.username !== sanitize(username)) return res.json({ success: false, message: '账号与邮箱不匹配' });
+  if (!newPassword || newPassword.length < 6) return res.json({ success: false, message: '新密码至少6位' });
+  const user = findOne(users, 'username', sanitize(username));
+  if (!user) return res.json({ success: false, message: '用户不存在' });
+  user.password = bcrypt.hashSync(newPassword, 10);
+  emailCodes.delete(email);
+  res.json({ success: true, message: '密码重置成功！请用新密码登录' });
+});
+
+// ==================== 留言板 API ====================
+// 获取留言
+app.get('/api/messages', (req, res) => {
+  res.json({ success: true, data: messages.slice(-50).reverse() });
+});
+
+// 发表留言
+app.post('/api/messages', (req, res) => {
+  const { content, userId, userName } = req.body;
+  if (!content || !content.trim()) return res.json({ success: false, message: '留言内容不能为空' });
+  if (content.length > 500) return res.json({ success: false, message: '留言最多500字' });
+  messages.push({
+    id: 'M' + Date.now(),
+    userId: sanitize(userId) || 'anonymous',
+    userName: sanitize(userName) || '匿名用户',
+    content: sanitize(content),
+    time: new Date().toISOString()
+  });
+  // 保留最近200条
+  if (messages.length > 200) messages = messages.slice(-200);
+  res.json({ success: true, message: '留言成功！' });
+});
+
+// 删除留言（管理员）
+app.delete('/api/messages/:id', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+  messages = messages.filter(m => m.id !== req.params.id);
+  res.json({ success: true, message: '删除成功' });
+});
+
+// ==================== 打赏 API ====================
+// 获取打赏信息
+app.get('/api/donate', (req, res) => {
+  res.json({ success: true, data: donateInfo });
+});
+
+// 更新打赏信息（管理员）
+app.post('/api/admin/donate', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+  Object.assign(donateInfo, req.body);
+  res.json({ success: true, message: '打赏信息已更新' });
 });
 
 // 所有系部列表
