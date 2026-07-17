@@ -1057,14 +1057,16 @@
                     <div style="background:var(--white);border-radius:var(--radius-lg);padding:32px;box-shadow:var(--shadow);">
                         <p style="margin-bottom:16px;color:var(--text-light);">请使用微信/支付宝扫描下方二维码</p>
                         <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;">
-                            <div id="donateWechat" style="display:none;">
-                                <div style="width:200px;height:200px;background:#eee;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:13px;color:#999;">微信收款码<br>(管理员设置后可显示)</div>
+                            <div id="donateAlipay">
+                                <div style="width:200px;height:200px;background:var(--gold-light);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:28px;color:var(--primary);">📱<br>支付宝<br>收款码</div>
+                                <p style="font-size:12px;margin-top:6px;color:var(--text-light);">支付宝扫一扫</p>
                             </div>
-                            <div id="donateAlipay" style="display:none;">
-                                <div style="width:200px;height:200px;background:#eee;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:13px;color:#999;">支付宝收款码<br>(管理员设置后可显示)</div>
+                            <div id="donateWechat">
+                                <div style="width:200px;height:200px;background:#e8f5e9;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:28px;color:#2e7d32;">💬<br>微信<br>收款码</div>
+                                <p style="font-size:12px;margin-top:6px;color:var(--text-light);">微信扫一扫</p>
                             </div>
                         </div>
-                        <p style="margin-top:16px;color:var(--gold);font-weight:600;" id="donateMsg">感谢您的支持！</p>
+                        <p style="margin-top:16px;color:var(--gold);font-weight:600;" id="donateMsg">每一份支持都是我们前进的动力，感谢！</p>
                     </div>
                 </div>
             </div>
@@ -1583,12 +1585,16 @@
             const d = (await res.json()).data || {};
             document.getElementById('dashboardStats').innerHTML = `
                 <div class="stat-card"><div class="stat-icon" style="background:#E8F3FF;color:#165DFF;"><i class="fa fa-user-graduate"></i></div><div><div class="stat-value">${d.totalStudents||0}</div><div class="stat-label">在读学生</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#FFF3E0;color:#FF9800;"><i class="fa fa-user-plus"></i></div><div><div class="stat-value">${d.totalRegistered||0}</div><div class="stat-label">注册账号</div></div></div>
                 <div class="stat-card"><div class="stat-icon" style="background:#E8FFEA;color:#00B42A;"><i class="fa fa-chalkboard-teacher"></i></div><div><div class="stat-value">${d.totalTeachers||0}</div><div class="stat-label">教师人数</div></div></div>
                 <div class="stat-card"><div class="stat-icon" style="background:#FFF7E8;color:#FF7D00;"><i class="fa fa-book"></i></div><div><div class="stat-value">${d.totalCourses||0}</div><div class="stat-label">课程总数</div></div></div>
+                <div class="stat-card"><div class="stat-icon" style="background:#E1F5FE;color:#0288D1;"><i class="fa fa-users"></i></div><div><div class="stat-value">${d.onlineCount||0}</div><div class="stat-label">当前在线</div></div></div>
                 <div class="stat-card"><div class="stat-icon" style="background:#F5E8FF;color:#722ED1;"><i class="fa fa-file-alt"></i></div><div><div class="stat-value">${d.totalGrades||0}</div><div class="stat-label">成绩记录</div></div></div>`;
             document.getElementById('dashboardGrid').innerHTML = `
-                <div class="card" style="grid-column:1/-1;"><div class="card-header"><h3><i class="fa fa-chart-bar"></i> 各系部学生分布</h3></div>
-                <div style="display:flex;flex-wrap:wrap;gap:12px;">${(d.studentByDept||[]).map(x=>`<div style="background:#FAFBFC;padding:10px 16px;border-radius:var(--radius);"><strong>${x.department}</strong>: ${x.count}人</div>`).join('')}</div></div>`;
+                <div class="card"><div class="card-header"><h3><i class="fa fa-chart-bar"></i> 各系部学生分布</h3></div>
+                <div style="display:flex;flex-wrap:wrap;gap:12px;">${(d.studentByDept||[]).map(x=>`<div style="background:#FAFBFC;padding:10px 16px;border-radius:var(--radius);"><strong>${x.department}</strong>: ${x.count}人</div>`).join('')||'暂无数据'}</div></div>
+                <div class="card"><div class="card-header"><h3><i class="fa fa-signal"></i> 在线用户</h3></div>
+                <div style="max-height:200px;overflow-y:auto;">${(d.onlineUsers||[]).map(u=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:13px;"><span class="badge ${u.role==='admin'?'badge-red':u.role==='teacher'?'badge-purple':'badge-green'}">${u.role==='admin'?'管理员':u.role==='teacher'?'教师':'学生'}</span> ${u.name}</div>`).join('')||'暂无在线用户'}</div></div>`;
         } catch(e){}
     }
         document.getElementById('sidebarName').textContent = currentUser.name;
