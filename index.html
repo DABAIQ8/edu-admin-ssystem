@@ -1104,6 +1104,7 @@
                     <div class="nav-item" data-page="adminGrades"><i class="fa fa-graduation-cap"></i> 成绩管理</div>
                     <div class="nav-item" data-page="adminNotices"><i class="fa fa-bullhorn"></i> 通知管理</div>
                     <div class="nav-item" data-page="adminExams"><i class="fa fa-calendar-check"></i> 考试管理</div>
+                    <div class="nav-item" data-page="adminSelection"><i class="fa fa-check-square"></i> 选课管理</div>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -1181,6 +1182,10 @@
             <section class="page-section" id="page-adminExams">
                 <div class="page-header"><h2>📅 考试管理</h2></div>
                 <div class="card"><div class="card-header"><h3>考试列表</h3><button class="btn btn-primary btn-sm" onclick="showAddExamModal()"><i class="fa fa-plus"></i> 添加考试</button></div><div class="table-wrap" id="adminExamsTable"></div></div>
+            </section>
+            <section class="page-section" id="page-adminSelection">
+                <div class="page-header"><h2>📝 选课管理</h2><div class="breadcrumb">为指定学生选课或退课</div></div>
+                <div class="card" id="adminSelectionContent"></div>
             </section>
         </div>
     </div>
@@ -1635,7 +1640,7 @@
         else navigateTo(isAdmin ? 'adminDashboard' : 'dashboard');
         loadJiaowuData().then(() => {
             if (isTeacher) { renderTeacherCourses(); renderTeacherStudents(); renderTeacherGrades(); }
-            else if (isAdmin) { renderAdminDashboard(); renderAdminStudents(); renderAdminCourses(); renderAdminGrades(); renderAdminNotices(); renderAdminExams(); }
+            else if (isAdmin) { renderAdminDashboard(); renderAdminStudents(); renderAdminCourses(); renderAdminGrades(); renderAdminNotices(); renderAdminExams(); renderAdminSelection(); }
             else { renderDashboard(); renderProfile(); renderSchedule(); renderGrades(); renderCourseSelection(); renderExams(); renderNotices(); }
         });
     }
@@ -1744,6 +1749,62 @@
 
     function renderAdminNotices(){document.getElementById('adminNoticesList').innerHTML=allNotices.map(n=>`<div class="notice-item"><span class="notice-tag ${n.important?'important':'normal'}">${n.important?'重要':'一般'}</span><div style="flex:1;"><div style="font-weight:600;">${n.title}</div><div style="font-size:12px;color:var(--text-secondary);">${n.date}|${n.publisher}</div></div><button class="btn btn-danger btn-xs" onclick="deleteNotice('${n.id}')">删除</button></div>`).join('');}
     function renderAdminExams(){document.getElementById('adminExamsTable').innerHTML='<table><thead><tr><th>ID</th><th>课程</th><th>日期</th><th>考场</th><th>操作</th></tr></thead><tbody>'+allExams.map(e=>`<tr><td>${e.id}</td><td>${e.courseName}</td><td>${e.date}</td><td>${e.location}</td><td><button class="btn btn-danger btn-xs" onclick="deleteExam('${e.id}')">删除</button></td></tr>`).join('')+'</tbody></table>';}
+
+    // ==================== 管理端选课管理 ====================
+    function renderAdminSelection() {
+        const studentOptions = allStudents.map(s => `<option value="${s.studentId}">${s.studentId} ${s.name} ${s.department}</option>`).join('');
+        const courseOptions = allCourses.map(c => `<option value="${c.id}">${c.id} ${c.name} (${c.teacher}) [${c.type}] ${c.selected}/${c.capacity}</option>`).join('');
+        document.getElementById('adminSelectionContent').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+                <div>
+                    <h4 style="margin-bottom:12px;">➕ 为学生选课</h4>
+                    <div class="form-group"><label>选择学生</label><select id="selStudentId" style="width:100%;height:44px;border:1.5px solid var(--border);border-radius:var(--radius);">${studentOptions}</select></div>
+                    <div class="form-group"><label>选择课程</label><select id="selCourseId" style="width:100%;height:44px;border:1.5px solid var(--border);border-radius:var(--radius);">${courseOptions}</select></div>
+                    <button class="btn btn-primary" onclick="adminAddSelection()">确认选课</button>
+                    <p style="font-size:12px;color:var(--text-light);margin-top:8px;">管理员代替学生选课，不受容量限制</p>
+                </div>
+                <div>
+                    <h4 style="margin-bottom:12px;">📋 已选课程查询</h4>
+                    <div class="form-group"><label>输入学号查询</label><div style="display:flex;gap:8px;"><input type="text" id="querySid" placeholder="输入学号" style="flex:1;height:44px;padding:0 12px;border:1.5px solid var(--border);border-radius:var(--radius);"><button class="btn btn-outline" onclick="queryStudentCourses()">查询</button></div></div>
+                    <div id="studentCoursesResult" style="margin-top:12px;font-size:13px;"></div>
+                </div>
+            </div>`;
+    }
+
+    async function adminAddSelection() {
+        const sid = document.getElementById('selStudentId').value;
+        const cid = document.getElementById('selCourseId').value;
+        if (!sid || !cid) { toast('请选择学生和课程','error'); return; }
+        try {
+            const res = await fetch(API_BASE+'/api/select-course', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({studentId:sid, courseId:cid})});
+            const data = await res.json();
+            toast(data.message||'操作完成', data.success?'success':'error');
+            if (data.success) { await loadJiaowuData(); renderAdminSelection(); }
+        } catch(e){ toast('操作失败','error'); }
+    }
+
+    async function queryStudentCourses() {
+        const sid = document.getElementById('querySid').value.trim();
+        if (!sid) { toast('请输入学号','error'); return; }
+        try {
+            const res = await fetch(API_BASE+'/api/my-courses/'+sid);
+            const data = await res.json();
+            const courses = data.data || [];
+            const el = document.getElementById('studentCoursesResult');
+            if (courses.length === 0) el.innerHTML = '<p style="color:#999;">该学生未选任何课程</p>';
+            else el.innerHTML = '<table><thead><tr><th>课程ID</th><th>课程名</th><th>教师</th><th>操作</th></tr></thead><tbody>'+courses.map(c=>`<tr><td>${c.id}</td><td>${c.name}</td><td>${c.teacher}</td><td><button class="btn btn-danger btn-xs" onclick="adminDropCourse('${sid}','${c.id}')">退课</button></td></tr>`).join('')+'</tbody></table>';
+        } catch(e){ toast('查询失败','error'); }
+    }
+
+    async function adminDropCourse(sid, cid) {
+        if (!confirm('确认退课？')) return;
+        try {
+            const res = await fetch(API_BASE+'/api/drop-course', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({studentId:sid, courseId:cid})});
+            const data = await res.json();
+            toast(data.message||'操作完成', data.success?'success':'error');
+            if (data.success) { queryStudentCourses(); await loadJiaowuData(); renderAdminSelection(); }
+        } catch(e){ toast('操作失败','error'); }
+    }
 
     // ==================== CSV导出 ====================
     function exportCSV(type) {
