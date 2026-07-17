@@ -1,0 +1,17 @@
+[
+  {"id":"C001","name":"高等数学（上）","teacher":"刘建国","credit":4,"type":"必修","semester":"2023-2024-1","time":"周一 1-2节","location":"教1-301","capacity":60,"selected":0,"department":"公共课"},
+  {"id":"C002","name":"大学英语（一）","teacher":"陈美玲","credit":3,"type":"必修","semester":"2023-2024-1","time":"周二 3-4节","location":"教3-205","capacity":45,"selected":0,"department":"公共课"},
+  {"id":"C003","name":"程序设计基础（C语言）","teacher":"张伟","credit":3,"type":"必修","semester":"2023-2024-1","time":"周三 1-2节","location":"实验楼A-301","capacity":40,"selected":0,"department":"信息工程学院"},
+  {"id":"C004","name":"数据结构","teacher":"李明","credit":3.5,"type":"必修","semester":"2023-2024-1","time":"周四 5-6节","location":"教2-101","capacity":40,"selected":0,"department":"信息工程学院"},
+  {"id":"C005","name":"马克思主义基本原理","teacher":"王芳","credit":2,"type":"必修","semester":"2023-2024-1","time":"周五 1-2节","location":"教1-201","capacity":80,"selected":0,"department":"公共课"},
+  {"id":"C006","name":"离散数学","teacher":"赵刚","credit":3,"type":"必修","semester":"2023-2024-1","time":"周一 5-6节","location":"教2-303","capacity":40,"selected":0,"department":"信息工程学院"},
+  {"id":"C007","name":"大学物理（上）","teacher":"周文博","credit":4,"type":"必修","semester":"2023-2024-1","time":"周三 3-4节","location":"教1-102","capacity":55,"selected":0,"department":"公共课"},
+  {"id":"C008","name":"管理学原理","teacher":"黄丽","credit":2,"type":"必修","semester":"2023-2024-1","time":"周二 1-2节","location":"教4-201","capacity":50,"selected":0,"department":"经济与管理学院"},
+  {"id":"C009","name":"中国近现代史纲要","teacher":"杨波","credit":2,"type":"必修","semester":"2023-2024-1","time":"周四 3-4节","location":"教1-401","capacity":80,"selected":0,"department":"公共课"},
+  {"id":"C010","name":"计算机网络","teacher":"陈刚","credit":3,"type":"选修","semester":"2023-2024-1","time":"周五 3-4节","location":"实验楼B-202","capacity":35,"selected":0,"department":"信息工程学院"},
+  {"id":"C011","name":"心理学导论","teacher":"林小红","credit":2,"type":"选修","semester":"2023-2024-1","time":"周一 7-8节","location":"教4-103","capacity":60,"selected":0,"department":"公共课"},
+  {"id":"C012","name":"日语入门","teacher":"吴雨桐","credit":2,"type":"选修","semester":"2023-2024-1","time":"周三 7-8节","location":"教3-301","capacity":40,"selected":0,"department":"外国语学院"},
+  {"id":"C013","name":"Python数据分析","teacher":"刘洋","credit":2,"type":"选修","semester":"2023-2024-1","time":"周二 7-8节","location":"实验楼A-201","capacity":30,"selected":0,"department":"信息工程学院"},
+  {"id":"C014","name":"书法鉴赏","teacher":"张志远","credit":1.5,"type":"选修","semester":"2023-2024-1","time":"周四 7-8节","location":"教5-102","capacity":50,"selected":0,"department":"公共课"},
+  {"id":"C015","name":"体育（一）","teacher":"马强","credit":1,"type":"必修","semester":"2023-2024-1","time":"周三 5-6节","location":"体育馆","capacity":40,"selected":0,"department":"公共课"}
+]

@@ -1,0 +1,9 @@
+[
+  {"id":"E001","courseId":"C001","courseName":"高等数学（上）","date":"2024-01-15","time":"09:00-11:00","location":"教1-301","seatNo":"A12"},
+  {"id":"E002","courseId":"C002","courseName":"大学英语（一）","date":"2024-01-16","time":"14:00-16:00","location":"教3-205","seatNo":"B08"},
+  {"id":"E003","courseId":"C003","courseName":"程序设计基础","date":"2024-01-17","time":"09:00-11:00","location":"实验楼A-301","seatNo":"C15"},
+  {"id":"E004","courseId":"C005","courseName":"马克思主义基本原理","date":"2024-01-18","time":"14:00-16:00","location":"教1-201","seatNo":"D03"},
+  {"id":"E005","courseId":"C006","courseName":"离散数学","date":"2024-01-19","time":"09:00-11:00","location":"教2-303","seatNo":"E20"},
+  {"id":"E006","courseId":"C007","courseName":"大学物理（上）","date":"2024-01-20","time":"14:00-16:00","location":"教1-102","seatNo":"F07"},
+  {"id":"E007","courseId":"C008","courseName":"管理学原理","date":"2024-01-15","time":"09:00-11:00","location":"教4-201","seatNo":"G11"}
+]

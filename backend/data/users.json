@@ -1,0 +1,74 @@
+[
+  {
+    "username": "admin",
+    "password": "$2a$10$i.SeEuDq3LHtT6Nb96K5O.6TwZ68S0VhhUDb5e3dCNXW8q7TFbvR2",
+    "role": "admin",
+    "name": "系统管理员",
+    "studentId": "000001",
+    "department": "教务处",
+    "major": "",
+    "className": "",
+    "gender": "男",
+    "enrollYear": "2020"
+  },
+  {
+    "username": "20230101001",
+    "password": "$2a$10$3oKiwXqEsQqiWNyjnHXrXuNdWt3zqJHcJWGRJeLQ/40IddHNEMUEu",
+    "role": "student",
+    "name": "张三",
+    "studentId": "20230101001",
+    "department": "信息工程学院",
+    "major": "计算机科学与技术",
+    "className": "计科2301班",
+    "gender": "男",
+    "enrollYear": "2023"
+  },
+  {
+    "username": "20230101002",
+    "password": "$2a$10$LkBZ3VaN1brkhWDj1xo6TenycycV/GT7SWlAsmDIHKnnu9puHla5S",
+    "role": "student",
+    "name": "李四",
+    "studentId": "20230101002",
+    "department": "信息工程学院",
+    "major": "软件工程",
+    "className": "软工2301班",
+    "gender": "女",
+    "enrollYear": "2023"
+  },
+  {
+    "username": "20220102001",
+    "password": "$2a$10$rChjkfc81dlpXS7APbbY1eJZDlc/y0NNJ2c54GsbgMDCdaMXwpJI6",
+    "role": "student",
+    "name": "王五",
+    "studentId": "20220102001",
+    "department": "经济与管理学院",
+    "major": "工商管理",
+    "className": "工商2201班",
+    "gender": "男",
+    "enrollYear": "2022"
+  },
+  {
+    "username": "20230103001",
+    "password": "$2a$10$s2ZjF65PwuPm/4.G/jOyXeUh4Hut1nY40oYaKNQWiBXCHPJ9zKhiK",
+    "role": "student",
+    "name": "赵六",
+    "studentId": "20230103001",
+    "department": "文学与新闻传播学院",
+    "major": "汉语言文学",
+    "className": "汉语言2301班",
+    "gender": "女",
+    "enrollYear": "2023"
+  },
+  {
+    "username": "20220103002",
+    "password": "$2a$10$F5zn85UFmVpsXYZPEEtTBuvy3i96uaQneHo0YLdNc4Gkun47LIFva",
+    "role": "student",
+    "name": "孙七",
+    "studentId": "20220103002",
+    "department": "外国语学院",
+    "major": "英语",
+    "className": "英语2201班",
+    "gender": "女",
+    "enrollYear": "2022"
+  }
+]
