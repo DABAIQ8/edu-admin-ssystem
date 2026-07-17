@@ -1072,6 +1072,7 @@
                     <div class="nav-item" data-page="adminNotices"><i class="fa fa-bullhorn"></i> 通知管理</div>
                     <div class="nav-item" data-page="adminExams"><i class="fa fa-calendar-check"></i> 考试管理</div>
                     <div class="nav-item" data-page="adminSelection"><i class="fa fa-check-square"></i> 选课管理</div>
+                    <div class="nav-item" data-page="adminSiteConfig"><i class="fa fa-cog"></i> 网站设置</div>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -1153,6 +1154,10 @@
             <section class="page-section" id="page-adminSelection">
                 <div class="page-header"><h2>📝 选课管理</h2><div class="breadcrumb">为指定学生选课或退课</div></div>
                 <div class="card" id="adminSelectionContent"></div>
+            </section>
+            <section class="page-section" id="page-adminSiteConfig">
+                <div class="page-header"><h2>⚙️ 网站设置</h2><div class="breadcrumb">管理首页展示内容</div></div>
+                <div class="card" id="adminSiteConfigContent"></div>
             </section>
         </div>
     </div>
@@ -1400,6 +1405,64 @@
         } catch (e) {}
         loadOnlineStats();
         loadMessageBoard();
+        loadFriendLinks();
+        loadSchoolConfig();
+        loadHomeNews();
+    }
+
+    async function loadFriendLinks() {
+        try {
+            const res = await fetch(API_BASE + '/api/friend-links');
+            const data = await res.json();
+            const links = data.data || [];
+            const el = document.getElementById('friendLinks');
+            if (el) {
+                el.innerHTML = links.map(l => `<a href="${l.url}" target="_blank" style="padding:8px 16px;background:#f0f0f0;border-radius:20px;text-decoration:none;color:var(--text);font-size:13px;transition:0.2s;" onmouseover="this.style.background='#e0e0e0'" onmouseout="this.style.background='#f0f0f0'">${l.name}</a>`).join('');
+            }
+        } catch(e){}
+    }
+
+    async function loadSchoolConfig() {
+        try {
+            const res = await fetch(API_BASE + '/api/config');
+            const cfg = (await res.json()).data || {};
+            const el1 = document.getElementById('aboutMotto');
+            const el2 = document.getElementById('aboutTitle');
+            const el3 = document.getElementById('aboutContent');
+            const el4 = document.getElementById('aboutStats');
+            if (el1) el1.textContent = cfg.motto || '厚德载物 · 博学笃行 · 求实创新';
+            if (el2) el2.textContent = cfg.aboutTitle || '关于 H 大学';
+            if (el3) el3.innerHTML = cfg.aboutContent || '';
+            if (el4 && cfg.stats) {
+                el4.innerHTML = `
+                    <div class="stat-box"><div class="num">${cfg.stats.departments||'15'}</div><div class="label">教学院系</div></div>
+                    <div class="stat-box"><div class="num">${cfg.stats.majors||'50+'}</div><div class="label">本科专业</div></div>
+                    <div class="stat-box"><div class="num">${cfg.stats.students||'15000+'}</div><div class="label">在校学生</div></div>
+                    <div class="stat-box"><div class="num">${cfg.stats.teachers||'800+'}</div><div class="label">教职员工</div></div>
+                    <div class="stat-box"><div class="num">${cfg.stats.area||'1200'}</div><div class="label">校园面积（亩）</div></div>
+                    <div class="stat-box"><div class="num">${cfg.stats.years||'20+'}</div><div class="label">建校历史（年）</div></div>`;
+            }
+        } catch(e){}
+    }
+
+    async function loadHomeNews() {
+        try {
+            const res = await fetch(API_BASE + '/api/config');
+            const cfg = (await res.json()).data || {};
+            const news = cfg.homeNews || [];
+            const el = document.getElementById('newsList');
+            if (el && news.length > 0) {
+                el.innerHTML = news.map(n => `
+                    <div class="news-item">
+                        <div class="news-img"><i class="fa ${n.icon||'fa-newspaper'}"></i></div>
+                        <div class="news-body">
+                            <h4>${n.title}</h4>
+                            <p class="news-excerpt">${n.excerpt||''}</p>
+                        </div>
+                        <div class="news-date"><span class="day">${(n.date||'').slice(-2)}</span>${(n.date||'').slice(0,7)}</div>
+                    </div>`).join('');
+            }
+        } catch(e){}
     }
 
     async function loadOnlineStats() {
@@ -1607,7 +1670,7 @@
         else navigateTo(isAdmin ? 'adminDashboard' : 'dashboard');
         loadJiaowuData().then(() => {
             if (isTeacher) { renderTeacherCourses(); renderTeacherStudents(); renderTeacherGrades(); }
-            else if (isAdmin) { renderAdminDashboard(); renderAdminStudents(); renderAdminCourses(); renderAdminGrades(); renderAdminNotices(); renderAdminExams(); renderAdminSelection(); }
+            else if (isAdmin) { renderAdminDashboard(); renderAdminStudents(); renderAdminCourses(); renderAdminGrades(); renderAdminNotices(); renderAdminExams(); renderAdminSelection(); renderAdminSiteConfig(); }
             else { renderDashboard(); renderProfile(); renderSchedule(); renderGrades(); renderCourseSelection(); renderExams(); renderNotices(); }
         });
     }
@@ -1771,6 +1834,132 @@
             toast(data.message||'操作完成', data.success?'success':'error');
             if (data.success) { queryStudentCourses(); await loadJiaowuData(); renderAdminSelection(); }
         } catch(e){ toast('操作失败','error'); }
+    }
+
+    // ==================== 管理端网站设置 ====================
+    async function renderAdminSiteConfig() {
+        let cfg = {};
+        try {
+            const res = await fetch(API_BASE+'/api/config');
+            cfg = (await res.json()).data || {};
+        } catch(e){}
+        let flinks = [];
+        try {
+            const res = await fetch(API_BASE+'/api/admin/friend-links', {headers:authHeaders()});
+            flinks = (await res.json()).data || [];
+        } catch(e){}
+        const stats = cfg.stats || {};
+        const news = cfg.homeNews || [];
+        const banners = cfg.banners || [
+            { title: '🎓 欢迎来到 H 大学', subtitle: '厚德载物 · 博学笃行 · 求实创新', bg: 'gradient1' },
+            { title: '📚 2026 年招生进行中', subtitle: '欢迎报考 H 大学，开启精彩大学生活', bg: 'gradient2' },
+            { title: '🏆 追求卓越 共创未来', subtitle: '培养具有创新精神和实践能力的高素质人才', bg: 'gradient3' }
+        ];
+        document.getElementById('adminSiteConfigContent').innerHTML = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:13px;">
+                <div style="grid-column:1/-1;"><h4>📷 轮播图设置</h4>
+                <div id="bannerList">${banners.map((b,i)=>`<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;"><input value="${b.title||''}" placeholder="标题" id="bnTitle${i}" style="flex:1;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"><input value="${b.subtitle||''}" placeholder="副标题" id="bnSub${i}" style="flex:1;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"><button class="btn btn-danger btn-xs" onclick="this.parentNode.remove()">✕</button></div>`).join('')}</div>
+                <button class="btn btn-outline btn-xs" onclick="addBannerField()">+ 添加轮播图</button></div>
+                <div><h4>📰 首页新闻</h4><div id="newsListAdmin">${news.map((n,i)=>`<div style="display:flex;gap:4px;margin-bottom:6px;"><input value="${n.title||''}" id="nTitle${i}" style="flex:1;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;" placeholder="标题"><input value="${n.excerpt||''}" id="nExcerpt${i}" style="width:120px;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;" placeholder="摘要"><button class="btn btn-danger btn-xs" onclick="this.parentNode.remove()">✕</button></div>`).join('')}</div>
+                <button class="btn btn-outline btn-xs" onclick="addNewsField()">+ 添加新闻</button></div>
+                <div><h4>🏫 学校概况</h4><label style="font-size:12px;">标题</label><input id="cfgAboutTitle" value="${(cfg.aboutTitle||'').replace(/"/g,'&quot;')}" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;">
+                <label style="font-size:12px;">校训</label><input id="cfgMotto" value="${(cfg.motto||'').replace(/"/g,'&quot;')}" style="width:100%;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;margin-bottom:6px;">
+                <label style="font-size:12px;">内容 (HTML)</label><textarea id="cfgAboutContent" rows="4" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:4px;font-size:12px;">${(cfg.aboutContent||'').replace(/"/g,'&quot;')}</textarea></div>
+                <div><h4>📊 统计数字</h4>${['departments','majors','students','teachers','area','years'].map(k=>`<div style="margin-bottom:4px;"><label style="font-size:11px;">${k}</label><input id="stat_${k}" value="${stats[k]||''}" style="width:100%;height:30px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"></div>`).join('')}</div>
+                <div style="grid-column:1/-1;"><h4>🔗 友情链接</h4><div id="friendLinksAdmin">${flinks.map((l,i)=>`<div style="display:flex;gap:6px;margin-bottom:6px;"><input value="${l.name||''}" id="flName${i}" placeholder="名称" style="flex:1;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"><input value="${l.url||''}" id="flUrl${i}" placeholder="URL" style="flex:2;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"><button class="btn btn-danger btn-xs" onclick="this.parentNode.remove()">✕</button></div>`).join('')}</div>
+                <button class="btn btn-outline btn-xs" onclick="addFriendLinkField()">+ 添加友链</button></div>
+                <div style="grid-column:1/-1;text-align:right;padding-top:12px;border-top:1px solid var(--border);">
+                    <button class="btn btn-primary" onclick="saveSiteConfig()">💾 保存全部设置</button>
+                </div>
+            </div>`;
+    }
+
+    function addBannerField() {
+        const c = document.getElementById('bannerList');
+        const i = c.children.length;
+        c.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;"><input placeholder="标题" id="bnTitle${i}" style="flex:1;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"><input placeholder="副标题" id="bnSub${i}" style="flex:1;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"><button class="btn btn-danger btn-xs" onclick="this.parentNode.remove()">✕</button></div>`);
+    }
+    function addNewsField() {
+        const c = document.getElementById('newsListAdmin');
+        const i = c.children.length;
+        c.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:4px;margin-bottom:6px;"><input id="nTitle${i}" style="flex:1;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;" placeholder="标题"><input id="nExcerpt${i}" style="width:120px;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;" placeholder="摘要"><button class="btn btn-danger btn-xs" onclick="this.parentNode.remove()">✕</button></div>`);
+    }
+    function addFriendLinkField() {
+        const c = document.getElementById('friendLinksAdmin');
+        const i = c.children.length;
+        c.insertAdjacentHTML('beforeend', `<div style="display:flex;gap:6px;margin-bottom:6px;"><input id="flName${i}" placeholder="名称" style="flex:1;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"><input id="flUrl${i}" placeholder="URL" style="flex:2;height:32px;padding:0 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;"><button class="btn btn-danger btn-xs" onclick="this.parentNode.remove()">✕</button></div>`);
+    }
+
+    async function saveSiteConfig() {
+        // 收集轮播图
+        const banners = [];
+        const bannerDivs = document.querySelectorAll('#bannerList > div');
+        bannerDivs.forEach(div => {
+            const inputs = div.querySelectorAll('input');
+            if (inputs.length >= 2 && (inputs[0].value || inputs[1].value)) {
+                banners.push({ title: inputs[0].value || '', subtitle: inputs[1].value || '', bg: 'gradient' + (banners.length+1) });
+            }
+        });
+        // 收集新闻
+        const homeNews = [];
+        const newsDivs = document.querySelectorAll('#newsListAdmin > div');
+        newsDivs.forEach(div => {
+            const inputs = div.querySelectorAll('input');
+            if (inputs.length >= 2 && inputs[0].value) {
+                homeNews.push({ title: inputs[0].value, excerpt: inputs[1].value || '', date: new Date().toISOString().slice(0,10), icon: 'fa-newspaper' });
+            }
+        });
+        // 收集友链
+        const links = [];
+        const linkDivs = document.querySelectorAll('#friendLinksAdmin > div');
+        linkDivs.forEach(div => {
+            const inputs = div.querySelectorAll('input');
+            if (inputs.length >= 2 && inputs[0].value && inputs[1].value) {
+                links.push({ name: inputs[0].value, url: inputs[1].value });
+            }
+        });
+        // 统计数字
+        const stats = {};
+        ['departments','majors','students','teachers','area','years'].forEach(k => {
+            const el = document.getElementById('stat_'+k);
+            if (el) stats[k] = el.value;
+        });
+
+        const configBody = {
+            aboutTitle: document.getElementById('cfgAboutTitle')?.value || '',
+            motto: document.getElementById('cfgMotto')?.value || '',
+            aboutContent: document.getElementById('cfgAboutContent')?.value || '',
+            stats, banners, homeNews
+        };
+
+        try {
+            const [r1, r2] = await Promise.all([
+                fetch(API_BASE+'/api/admin/config', {method:'POST',headers:authHeaders(),body:JSON.stringify(configBody)}),
+                fetch(API_BASE+'/api/admin/friend-links', {method:'POST',headers:authHeaders(),body:JSON.stringify({links})})
+            ]);
+            const d1 = await r1.json();
+            const d2 = await r2.json();
+            toast('设置已保存！', 'success');
+            // 刷新门户页
+            loadFriendLinks();
+            loadSchoolConfig();
+            loadHomeNews();
+            updateBanners(banners);
+        } catch(e){ toast('保存失败', 'error'); }
+    }
+
+    function updateBanners(banners) {
+        if (!banners || banners.length === 0) return;
+        const slides = document.querySelectorAll('.banner-slide');
+        const slidesArr = Array.from(slides);
+        banners.forEach((b, i) => {
+            if (i < slidesArr.length) {
+                const h2 = slidesArr[i].querySelector('h2');
+                const p = slidesArr[i].querySelector('p');
+                if (h2) h2.textContent = b.title;
+                if (p) p.textContent = b.subtitle;
+            }
+        });
     }
 
     // ==================== CSV导出 ====================
