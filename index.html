@@ -914,36 +914,11 @@
                     <h2>快速入口</h2>
                     <p>常用服务一键直达</p>
                 </div>
-                <div class="quick-links">
-                    <a href="javascript:showLoginModal()" class="quick-link-card">
+                <div style="display:flex;justify-content:center;">
+                    <a href="javascript:showLoginModal()" class="quick-link-card" style="max-width:260px;">
                         <div class="icon red"><i class="fa fa-graduation-cap"></i></div>
                         <h4>教务系统</h4>
                         <p>选课·成绩·课表</p>
-                    </a>
-                    <a href="javascript:showLoginModal()" class="quick-link-card">
-                        <div class="icon blue"><i class="fa fa-book-open"></i></div>
-                        <h4>在线课程</h4>
-                        <p>MOOC 学习平台</p>
-                    </a>
-                    <a href="#" class="quick-link-card">
-                        <div class="icon green"><i class="fa fa-search"></i></div>
-                        <h4>招生信息</h4>
-                        <p>报考指南·录取查询</p>
-                    </a>
-                    <a href="#" class="quick-link-card">
-                        <div class="icon orange"><i class="fa fa-building"></i></div>
-                        <h4>就业服务</h4>
-                        <p>招聘信息·职业规划</p>
-                    </a>
-                    <a href="#" class="quick-link-card">
-                        <div class="icon purple"><i class="fa fa-landmark"></i></div>
-                        <h4>学工在线</h4>
-                        <p>奖学金·助学贷款</p>
-                    </a>
-                    <a href="#" class="quick-link-card">
-                        <div class="icon teal"><i class="fa fa-book"></i></div>
-                        <h4>图书馆</h4>
-                        <p>馆藏检索·电子资源</p>
                     </a>
                 </div>
             </div>
@@ -954,49 +929,41 @@
             <div class="container">
                 <div class="section-title">
                     <h2>学校概况</h2>
-                    <p>厚德载物 · 博学笃行 · 求实创新</p>
+                    <p id="aboutMotto">厚德载物 · 博学笃行 · 求实创新</p>
                 </div>
                 <div class="about-grid">
                     <div class="about-text">
-                        <h3>关于 H 大学</h3>
-                        <p>H大学是一所综合性全日制普通本科高等院校，坐落于美丽的孝感市。学校秉承"厚德载物、博学笃行"的校训，致力于培养具有创新精神和实践能力的高素质应用型人才。</p>
-                        <p>学校设有信息工程学院、经济与管理学院、文学与新闻传播学院、外国语学院、机电工程学院、生物与化学学院、艺术与设计学院等十余个教学单位，涵盖工、管、文、理、艺等多个学科门类。</p>
-                        <p>学校现有在校学生15000余人，教职工800余人，校园占地面积1200余亩，建筑面积40余万平方米，教学科研仪器设备总值超过1.5亿元。</p>
+                        <h3 id="aboutTitle">关于 H 大学</h3>
+                        <div id="aboutContent">
+                            <p>H大学是一所综合性全日制普通本科高等院校，坐落于美丽的孝感市。学校秉承"厚德载物、博学笃行"的校训，致力于培养具有创新精神和实践能力的高素质应用型人才。</p>
+                            <p>学校设有信息工程学院、经济与管理学院、文学与新闻传播学院、外国语学院、机电工程学院、生物与化学学院、艺术与设计学院等十余个教学单位，涵盖工、管、文、理、艺等多个学科门类。</p>
+                            <p>学校现有在校学生15000余人，教职工800余人，校园占地面积1200余亩，建筑面积40余万平方米，教学科研仪器设备总值超过1.5亿元。</p>
+                        </div>
                     </div>
-                    <div class="about-stats">
-                        <div class="stat-box">
-                            <div class="num">15</div>
-                            <div class="label">教学院系</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="num">50+</div>
-                            <div class="label">本科专业</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="num">15000+</div>
-                            <div class="label">在校学生</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="num">800+</div>
-                            <div class="label">教职员工</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="num">1200</div>
-                            <div class="label">校园面积（亩）</div>
-                        </div>
-                        <div class="stat-box">
-                            <div class="num">20+</div>
-                            <div class="label">建校历史（年）</div>
-                        </div>
+                    <div class="about-stats" id="aboutStats">
+                        <div class="stat-box"><div class="num">15</div><div class="label">教学院系</div></div>
+                        <div class="stat-box"><div class="num">50+</div><div class="label">本科专业</div></div>
+                        <div class="stat-box"><div class="num">15000+</div><div class="label">在校学生</div></div>
+                        <div class="stat-box"><div class="num">800+</div><div class="label">教职员工</div></div>
+                        <div class="stat-box"><div class="num">1200</div><div class="label">校园面积（亩）</div></div>
+                        <div class="stat-box"><div class="num">20+</div><div class="label">建校历史（年）</div></div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- 友情链接 -->
+        <div class="section" style="background:var(--white);">
+            <div class="container">
+                <div class="section-title"><h2>友情链接</h2><p>相关链接直达</p></div>
+                <div id="friendLinks" style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;"></div>
             </div>
         </div>
 
         <!-- 页脚 -->
         <footer class="site-footer" id="contact">
             <div class="container">
-                <div class="footer-links">
+                <div class="footer-bottom">
                     <div>
                         <h4>快速链接</h4>
                         <a href="javascript:showLoginModal()">教务系统</a>

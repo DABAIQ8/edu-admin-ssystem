@@ -3,6 +3,23 @@ const cors = require('cors');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const https = require('https');
+
+// 微信通知：通过 Server酱 推送消息到微信
+const SERVERCHAN_KEY = process.env.SERVERCHAN_KEY || ''; // 在 Vercel 环境变量中设置
+function pushWechat(title, desp) {
+  if (!SERVERCHAN_KEY) return;
+  const postData = JSON.stringify({ title, desp: desp.replace(/\n/g, '\n\n') });
+  const req = https.request({
+    hostname: 'sctapi.ftqq.com',
+    path: `/${SERVERCHAN_KEY}.send`,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+  }, (res) => { res.on('data', () => {}); });
+  req.on('error', (e) => { console.error('Wechat push failed:', e.message); });
+  req.write(postData);
+  req.end();
+}
 const nodemailer = require('nodemailer');
 
 // QQ邮箱SMTP配置
@@ -214,8 +231,28 @@ let schoolConfig = {
   campusArea: "1200",
   departmentCount: "15",
   majorCount: "50",
-  historyYears: "20"
+  historyYears: "20",
+  // 学校概况内容（支持HTML）
+  aboutTitle: "关于 H 大学",
+  aboutContent: "<p>H大学是一所综合性全日制普通本科高等院校，坐落于美丽的孝感市。学校秉承'厚德载物、博学笃行'的校训，致力于培养具有创新精神和实践能力的高素质应用型人才。</p><p>学校设有信息工程学院、经济与管理学院、文学与新闻传播学院、外国语学院、机电工程学院、生物与化学学院、艺术与设计学院等十余个教学单位，涵盖工、管、文、理、艺等多个学科门类。</p><p>学校现有在校学生15000余人，教职工800余人，校园占地面积1200余亩，建筑面积40余万平方米，教学科研仪器设备总值超过1.5亿元。</p>",
+  // 统计数据
+  stats: { departments:"15", majors:"50+", students:"15000+", teachers:"800+", area:"1200", years:"20+" },
+  // 首页新闻（管理员可编辑）
+  homeNews: [
+    { title:"H大学2026年教学工作会议顺利召开", excerpt:"会议总结了上一年度教学工作成果，部署了新学期的重点任务...", date:"2026-07-15", icon:"fa-newspaper" },
+    { title:"我校学子在全国大学生程序设计竞赛中荣获一等奖", excerpt:"来自信息工程学院的团队经过激烈角逐，从200余支队伍中脱颖而出...", date:"2026-07-12", icon:"fa-trophy" },
+    { title:"H大学与多家知名企业签署校企合作协议", excerpt:"双方将在人才培养、科研合作、实习就业等方面展开深度合作...", date:"2026-07-08", icon:"fa-handshake" },
+    { title:"2026届毕业生典礼隆重举行", excerpt:"三千余名毕业生身着学位服，共同见证这一庄严而温馨的时刻...", date:"2026-06-28", icon:"fa-graduation-cap" }
+  ]
 };
+
+// 友情链接
+let friendLinks = [
+  { name: "教育部", url: "https://www.moe.gov.cn" },
+  { name: "湖北省教育厅", url: "https://jyt.hubei.gov.cn" },
+  { name: "学信网", url: "https://www.chsi.com.cn" },
+  { name: "湖北招生信息网", url: "https://zsxx.e21.cn" }
+];
 
 // 操作日志
 let operationLogs = [];
@@ -337,16 +374,7 @@ app.post('/api/register', (req, res) => {
   });
 
   // 微信通知管理员（通过Server酱）
-  const serverKey = process.env.SERVERCHAN_KEY || '';
-  if (serverKey) {
-    const msg = `📢 新用户注册提醒\n\n姓名：${rname}\n学号：${uname}\n院系：${sanitize(department) || '未填写'}\n邮箱：${sanitize(email) || '未填写'}\n时间：${new Date().toLocaleString('zh-CN')}`;
-    const https = require('https');
-    const postData = JSON.stringify({ title: 'H大学教务系统 - 新用户注册', desp: msg });
-    const req2 = https.request({ hostname: 'sctapi.ftqq.com', path: `/${serverKey}.send`, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res2) => {});
-    req2.on('error', () => {});
-    req2.write(postData);
-    req2.end();
-  }
+  pushWechat('H大学教务系统 - 新用户注册', `姓名：${rname}\n学号：${uname}\n院系：${sanitize(department) || '未填写'}\n邮箱：${sanitize(email) || '未填写'}\n时间：${new Date().toLocaleString('zh-CN')}`);
 
   res.json({ success: true, message: '注册成功！请登录' });
 });
@@ -873,6 +901,46 @@ app.post('/api/admin/donate', (req, res) => {
   if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
   Object.assign(donateInfo, req.body);
   res.json({ success: true, message: '打赏信息已更新' });
+});
+
+// ==================== 友情链接 API ====================
+// 公开
+app.get('/api/friend-links', (req, res) => {
+  res.json({ success: true, data: friendLinks });
+});
+// 管理端
+app.get('/api/admin/friend-links', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+  res.json({ success: true, data: friendLinks });
+});
+app.post('/api/admin/friend-links', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+  friendLinks = req.body.links || req.body;
+  res.json({ success: true, message: '友情链接已更新' });
+});
+
+// ==================== 学校配置API（扩展） ====================
+// 获取完整配置（公开）
+app.get('/api/config', (req, res) => {
+  res.json({ success: true, data: { ...schoolConfig, friendLinks, donateInfo } });
+});
+// 管理员更新配置
+app.post('/api/admin/config', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+  Object.assign(schoolConfig, req.body);
+  res.json({ success: true, message: '配置已更新' });
 });
 
 // 所有系部列表
