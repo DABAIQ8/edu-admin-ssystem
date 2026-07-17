@@ -335,6 +335,19 @@ app.post('/api/register', (req, res) => {
     className: '', enrollYear: sanitize(enrollYear) || '2024',
     birthDate: '', idCard: '', phone: '', address: '', status: '在读'
   });
+
+  // 微信通知管理员（通过Server酱）
+  const serverKey = process.env.SERVERCHAN_KEY || '';
+  if (serverKey) {
+    const msg = `📢 新用户注册提醒\n\n姓名：${rname}\n学号：${uname}\n院系：${sanitize(department) || '未填写'}\n邮箱：${sanitize(email) || '未填写'}\n时间：${new Date().toLocaleString('zh-CN')}`;
+    const https = require('https');
+    const postData = JSON.stringify({ title: 'H大学教务系统 - 新用户注册', desp: msg });
+    const req2 = https.request({ hostname: 'sctapi.ftqq.com', path: `/${serverKey}.send`, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res2) => {});
+    req2.on('error', () => {});
+    req2.write(postData);
+    req2.end();
+  }
+
   res.json({ success: true, message: '注册成功！请登录' });
 });
 
