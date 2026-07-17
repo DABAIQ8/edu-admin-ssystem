@@ -943,9 +943,22 @@ app.post('/api/admin/config', (req, res) => {
   res.json({ success: true, message: '配置已更新' });
 });
 
-// 所有系部列表
+// 所有系部列表（公开 + 管理端可编辑）
+let customDepartments = ['信息工程学院','经济与管理学院','文学与新闻传播学院','外国语学院','机电工程学院','生物与化学学院','艺术与设计学院'];
 app.get('/api/departments', (req, res) => {
-  res.json({ success: true, data: [...new Set(students.map(s => s.department).filter(Boolean))] });
+  const fromStudents = [...new Set(students.map(s => s.department).filter(Boolean))];
+  const merged = [...new Set([...customDepartments, ...fromStudents])].sort();
+  res.json({ success: true, data: merged });
+});
+// 管理端更新系部
+app.post('/api/admin/departments', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+  if (req.body.departments && Array.isArray(req.body.departments)) customDepartments = req.body.departments;
+  res.json({ success: true, message: '系部列表已更新', data: customDepartments });
 });
 
 // 验证 token
