@@ -6,74 +6,99 @@ const bcrypt = require('bcryptjs');
 const app = express();
 
 // ==================== 安全中间件 ====================
-
-// 限制请求体大小，防止大 payload 攻击
-app.use(express.json({ limit: '512kb' }));
-
-// CORS：只允许本站和本地开发
+app.use(express.json({ limit: '2mb' }));
 app.use(cors({
   origin: function (origin, callback) {
-    const allowed = [
-      /^https?:\/\/localhost(:\d+)?$/,
-      /^https?:\/\/127\.0\.0\.1(:\d+)?$/,
-      /^https:\/\/jiaowu-system.*\.vercel\.app$/,
-      /^https:\/\/jiaowu-system\.vercel\.app$/,
-      /^https:\/\/.*-student-work1\.vercel\.app$/,
-    ];
-    // 允许无 origin 的请求（如 curl、移动端）
+    // 允许所有来源（生产环境可收紧）
     if (!origin) return callback(null, true);
-    const ok = allowed.some(r => r.test(origin));
-    if (ok) callback(null, true);
-    else callback(null, true); // 宽松模式：也允许其他来源
+    callback(null, true);
   },
   credentials: true
 }));
-
-// 安全响应头
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
   next();
 });
 
-// ==================== 登录限流（内存 Map） ====================
+// ==================== 登录限流 ====================
 const loginAttempts = new Map();
-// 定期清理过期记录
 setInterval(() => {
   const now = Date.now();
-  for (const [key, val] of loginAttempts) {
-    if (now - val.firstAttempt > 900000) loginAttempts.delete(key); // 15分钟过期
+  for (const [k, v] of loginAttempts) {
+    if (now - v.firstAttempt > 900000) loginAttempts.delete(k);
   }
 }, 60000);
 
 function checkLoginLimit(ip) {
   const now = Date.now();
-  let record = loginAttempts.get(ip);
-  if (!record || now - record.firstAttempt > 900000) {
+  let r = loginAttempts.get(ip);
+  if (!r || now - r.firstAttempt > 900000) {
     loginAttempts.set(ip, { count: 1, firstAttempt: now, locked: false, lockedUntil: 0 });
     return true;
   }
-  if (record.locked && now < record.lockedUntil) {
-    return false;
-  }
-  if (record.locked && now >= record.lockedUntil) {
+  if (r.locked && now < r.lockedUntil) return false;
+  if (r.locked && now >= r.lockedUntil) {
     loginAttempts.set(ip, { count: 1, firstAttempt: now, locked: false, lockedUntil: 0 });
     return true;
   }
-  record.count++;
-  if (record.count > 5) {
-    record.locked = true;
-    record.lockedUntil = now + 900000; // 锁定15分钟
-    return false;
-  }
+  r.count++;
+  if (r.count > 10) { r.locked = true; r.lockedUntil = now + 900000; return false; }
   return true;
 }
+function recordLoginSuccess(ip) { loginAttempts.delete(ip); }
 
-function recordLoginSuccess(ip) {
-  loginAttempts.delete(ip);
+// ==================== Token 管理 ====================
+const crypto = require('crypto');
+const activeTokens = new Map(); // token -> { username, role, createdAt }
+
+function generateToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// 管理员权限校验：从请求头的 Authorization 读取 Bearer token
+function adminAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: '请先登录管理员账号' });
+  }
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') {
+    return res.status(403).json({ success: false, message: '无管理员权限' });
+  }
+  req.adminUser = session;
+  next();
+}
+
+// 教师权限校验
+function teacherAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: '请先登录' });
+  }
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || (session.role !== 'teacher' && session.role !== 'admin')) {
+    return res.status(403).json({ success: false, message: '无权限' });
+  }
+  req.teacherUser = session;
+  next();
+}
+
+// 学生权限校验
+function studentAuth(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ success: false, message: '请先登录' });
+  }
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session) return res.status(401).json({ success: false, message: '登录已过期' });
+  req.currentUser = session;
+  next();
 }
 
 // ==================== 输入过滤 ====================
@@ -82,19 +107,12 @@ function sanitize(str) {
   return str.replace(/[<>"'&]/g, '').trim();
 }
 
-// ==================== 管理员权限校验 ====================
-function adminAuth(req, res, next) {
-  const authHeader = req.headers['x-admin-auth'] || req.headers['authorization'];
-  const adminKey = process.env.ADMIN_KEY || 'h-university-admin-2024-secret-key';
-  if (!authHeader || authHeader !== `Bearer ${adminKey}`) {
-    return res.status(403).json({ success: false, message: '无权限访问管理端API' });
-  }
-  next();
-}
-
 // ==================== 预置数据 ====================
 const presetUsers = [
   { username:"admin", password:"admin123", role:"admin", name:"系统管理员", studentId:"000001", department:"教务处", major:"", className:"", gender:"男", enrollYear:"2020" },
+  { username:"t001", password:"123456", role:"teacher", name:"刘建国", studentId:"T001", department:"公共课部", major:"数学", className:"", gender:"男", enrollYear:"2010" },
+  { username:"t002", password:"123456", role:"teacher", name:"陈美玲", studentId:"T002", department:"公共课部", major:"英语", className:"", gender:"女", enrollYear:"2012" },
+  { username:"t003", password:"123456", role:"teacher", name:"张伟", studentId:"T003", department:"信息工程学院", major:"计算机科学", className:"", gender:"男", enrollYear:"2015" },
   { username:"20230101001", password:"123456", role:"student", name:"张三", studentId:"20230101001", department:"信息工程学院", major:"计算机科学与技术", className:"计科2301班", gender:"男", enrollYear:"2023" },
   { username:"20230101002", password:"123456", role:"student", name:"李四", studentId:"20230101002", department:"信息工程学院", major:"软件工程", className:"软工2301班", gender:"女", enrollYear:"2023" },
   { username:"20220102001", password:"123456", role:"student", name:"王五", studentId:"20220102001", department:"经济与管理学院", major:"工商管理", className:"工商2201班", gender:"男", enrollYear:"2022" },
@@ -161,261 +179,116 @@ const presetNotices = [
   { id:"N007", title:"2024年毕业设计（论文）工作安排", content:"2024届毕业生毕业设计（论文）答辩时间定于5月20日-5月30日。请各指导教师和学生按照时间节点完成：5月1日前提交初稿，5月15日前完成定稿，5月20日起正式答辩。", date:"2024-04-01", publisher:"教务处", important:true },
 ];
 
-// ==================== Turso 数据库连接 ====================
-const TURSO_URL = process.env.TURSO_URL || '';
-const TURSO_TOKEN = process.env.TURSO_TOKEN || '';
+// 学校配置
+let schoolConfig = {
+  name: "H大学",
+  fullName: "H大学",
+  motto: "厚德载物 · 博学笃行 · 求实创新",
+  address: "湖北省孝感市学院路158号",
+  phone: "(0712)2345612",
+  enrollmentPhone: "(0712)2345919",
+  email: "office@hu-university.edu.cn",
+  copyright: "Copyright © 2024 H大学 All Rights Reserved",
+  icp: "鄂ICP备06000924号",
+  studentCount: "15000",
+  teacherCount: "800",
+  campusArea: "1200",
+  departmentCount: "15",
+  majorCount: "50",
+  historyYears: "20"
+};
 
-let db;
-if (TURSO_URL && TURSO_TOKEN) {
-  const { createClient } = require('@libsql/client');
-  db = createClient({ url: TURSO_URL, authToken: TURSO_TOKEN });
-  console.log('✅ 使用 Turso 云数据库');
-} else {
-  console.log('⚠️ 未配置 TURSO，使用内存存储');
-}
+// 操作日志
+let operationLogs = [];
 
-// 内存数据存储（当无 Turso 时使用）
+// ==================== 内存存储（初始化从预设数据拷贝） ====================
 let users = [], students = [], courses = [], grades = [], exams = [], notices = [], myCourses = [];
 
-async function initData() {
-  if (db) {
-    // 使用 Turso 数据库
-    try {
-      // 建表
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS users (
-          username TEXT PRIMARY KEY, password TEXT NOT NULL, role TEXT DEFAULT 'student',
-          name TEXT, studentId TEXT UNIQUE, department TEXT, major TEXT, className TEXT,
-          gender TEXT, enrollYear TEXT
-        )
-      `);
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS students (
-          studentId TEXT PRIMARY KEY, name TEXT, gender TEXT, department TEXT,
-          major TEXT, className TEXT, enrollYear TEXT, birthDate TEXT, idCard TEXT,
-          phone TEXT, address TEXT, status TEXT DEFAULT '在读'
-        )
-      `);
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS courses (
-          id TEXT PRIMARY KEY, name TEXT, teacher TEXT, credit REAL, type TEXT,
-          semester TEXT, time TEXT, location TEXT, capacity INTEGER DEFAULT 60,
-          selected INTEGER DEFAULT 0, department TEXT
-        )
-      `);
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS grades (
-          studentId TEXT, courseId TEXT, courseName TEXT, semester TEXT,
-          credit REAL, regularScore REAL, examScore REAL, totalScore REAL,
-          gpa REAL, rank INTEGER, PRIMARY KEY (studentId, courseId)
-        )
-      `);
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS exams (
-          id TEXT PRIMARY KEY, courseId TEXT, courseName TEXT,
-          date TEXT, time TEXT, location TEXT, seatNo TEXT
-        )
-      `);
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS notices (
-          id TEXT PRIMARY KEY, title TEXT, content TEXT, date TEXT,
-          publisher TEXT, important INTEGER DEFAULT 0
-        )
-      `);
-      await db.execute(`
-        CREATE TABLE IF NOT EXISTS my_courses (
-          studentId TEXT, courseId TEXT, PRIMARY KEY (studentId, courseId)
-        )
-      `);
+function initData() {
+  users = presetUsers.map(u => ({
+    ...u,
+    password: u.password.startsWith('$2a$') ? u.password : bcrypt.hashSync(u.password, 10)
+  }));
+  students = JSON.parse(JSON.stringify(presetStudents));
+  courses = JSON.parse(JSON.stringify(presetCourses));
+  grades = JSON.parse(JSON.stringify(presetGrades));
+  exams = JSON.parse(JSON.stringify(presetExams));
+  notices = JSON.parse(JSON.stringify(presetNotices));
+  myCourses = [];
+}
+initData();
 
-      // 检查是否已有数据（首次初始化）
-      const count = await db.execute('SELECT COUNT(*) as cnt FROM users');
-      if (count.rows[0].cnt === 0) {
-        for (const u of presetUsers) {
-          const hpw = u.password.startsWith('$2a$') ? u.password : bcrypt.hashSync(u.password, 10);
-          await db.execute({
-            sql: 'INSERT OR IGNORE INTO users VALUES (?,?,?,?,?,?,?,?,?,?)',
-            args: [u.username, hpw, u.role, u.name, u.studentId, u.department, u.major, u.className, u.gender, u.enrollYear]
-          });
-        }
-        for (const s of presetStudents) {
-          await db.execute({
-            sql: 'INSERT OR IGNORE INTO students VALUES (?,?,?,?,?,?,?,?,?,?,?,?)',
-            args: [s.studentId, s.name, s.gender, s.department, s.major, s.className, s.enrollYear, s.birthDate, s.idCard, s.phone, s.address, s.status]
-          });
-        }
-        for (const c of presetCourses) {
-          await db.execute({
-            sql: 'INSERT OR IGNORE INTO courses VALUES (?,?,?,?,?,?,?,?,?,?,?)',
-            args: [c.id, c.name, c.teacher, c.credit, c.type, c.semester, c.time, c.location, c.capacity, c.selected, c.department]
-          });
-        }
-        for (const g of presetGrades) {
-          await db.execute({
-            sql: 'INSERT OR IGNORE INTO grades VALUES (?,?,?,?,?,?,?,?,?,?)',
-            args: [g.studentId, g.courseId, g.courseName, g.semester, g.credit, g.regularScore, g.examScore, g.totalScore, g.gpa, g.rank]
-          });
-        }
-        for (const e of presetExams) {
-          await db.execute({
-            sql: 'INSERT OR IGNORE INTO exams VALUES (?,?,?,?,?,?,?)',
-            args: [e.id, e.courseId, e.courseName, e.date, e.time, e.location, e.seatNo]
-          });
-        }
-        for (const n of presetNotices) {
-          await db.execute({
-            sql: 'INSERT OR IGNORE INTO notices VALUES (?,?,?,?,?,?)',
-            args: [n.id, n.title, n.content, n.date, n.publisher, n.important ? 1 : 0]
-          });
-        }
-        console.log('✅ 预设数据已导入 Turso');
-      }
-    } catch (err) {
-      console.error('Turso 初始化失败，降级为内存:', err.message);
-      db = null;
-    }
-  }
-
-  if (!db) {
-    // 内存存储
-    users = JSON.parse(JSON.stringify(presetUsers));
-    students = JSON.parse(JSON.stringify(presetStudents));
-    courses = JSON.parse(JSON.stringify(presetCourses));
-    grades = JSON.parse(JSON.stringify(presetGrades));
-    exams = JSON.parse(JSON.stringify(presetExams));
-    notices = JSON.parse(JSON.stringify(presetNotices));
-    myCourses = [];
-    users.forEach(u => {
-      if (!u.password.startsWith('$2a$')) u.password = bcrypt.hashSync(u.password, 10);
-    });
-  }
+// 辅助函数
+function findOne(arr, key, val) { return arr.find(x => x[key] == val) || null; }
+function findAll(arr, key, val) { return arr.filter(x => x[key] == val); }
+function removeOne(arr, key, val) {
+  const idx = arr.findIndex(x => x[key] == val);
+  if (idx >= 0) arr.splice(idx, 1);
+}
+function paginate(arr, page = 1, pageSize = 20) {
+  const start = (page - 1) * pageSize;
+  const items = arr.slice(start, start + pageSize);
+  return { items, total: arr.length, page, pageSize, totalPages: Math.ceil(arr.length / pageSize) };
 }
 
-// ==================== 数据库查询辅助 ====================
-async function dbAll(table, where = '', params = []) {
-  if (!db) {
-    const data = { users, students, courses, grades, exams, notices, myCourses };
-    let arr = data[table] || [];
-    return arr;
-  }
-  try {
-    const sql = where ? `SELECT * FROM ${table} WHERE ${where}` : `SELECT * FROM ${table}`;
-    const result = await db.execute({ sql, args: params });
-    // 将 important 0/1 转 bool
-    return result.rows.map(r => ({ ...r, important: r.important === 1 || r.important === true }));
-  } catch (e) { return []; }
-}
-
-async function dbGet(table, where, params = []) {
-  if (!db) {
-    const data = { users, students, courses, grades, exams, notices, myCourses };
-    let arr = data[table] || [];
-    // 简单 KV 查找
-    const [key, val] = where.split(' = ?');
-    const cleanKey = key.replace(/"/g, '').trim();
-    return arr.find(x => x[cleanKey] == params[0]) || null;
-  }
-  try {
-    const result = await db.execute({ sql: `SELECT * FROM ${table} WHERE ${where} LIMIT 1`, args: params });
-    if (result.rows.length === 0) return null;
-    const r = result.rows[0];
-    r.important = r.important === 1 || r.important === true;
-    return r;
-  } catch (e) { return null; }
-}
-
-async function dbInsert(table, obj) {
-  if (!db) {
-    const data = { users, students, courses, grades, exams, notices, myCourses };
-    data[table].push(obj);
-    return;
-  }
-  try {
-    const keys = Object.keys(obj);
-    const vals = Object.values(obj);
-    const placeholders = keys.map(() => '?').join(',');
-    await db.execute({ sql: `INSERT OR REPLACE INTO ${table} (${keys.join(',')}) VALUES (${placeholders})`, args: vals });
-  } catch (e) { }
-}
-
-async function dbDelete(table, where, params = []) {
-  if (!db) {
-    const data = { users, students, courses, grades, exams, notices, myCourses };
-    const [key, val] = where.split(' = ?');
-    const cleanKey = key.replace(/"/g, '').trim();
-    const idx = data[table].findIndex(x => x[cleanKey] == params[0]);
-    if (idx >= 0) data[table].splice(idx, 1);
-    return;
-  }
-  try {
-    await db.execute({ sql: `DELETE FROM ${table} WHERE ${where}`, args: params });
-  } catch (e) { }
-}
-
-async function dbUpdate(table, setClause, where, params = []) {
-  if (!db) return;
-  try {
-    await db.execute({ sql: `UPDATE ${table} SET ${setClause} WHERE ${where}`, args: params });
-  } catch (e) { }
-}
-
-// ==================== API 路由 ====================
+// ==================== 公开 API ====================
 
 // 登录
 app.post('/api/login', (req, res) => {
   const ip = (req.headers['x-forwarded-for'] || req.ip || '0').split(',')[0].trim();
-
-  // 限流检查
   if (!checkLoginLimit(ip)) {
     return res.status(429).json({ success: false, message: '登录尝试过多，请15分钟后再试' });
   }
-
   const { username, password } = req.body;
   const uname = sanitize(username);
   if (!uname || !password) return res.status(400).json({ success: false, message: '请输入账号和密码' });
 
-  // 查找用户
-  dbGet('users', 'username = ?', [uname]).then(user => {
-    if (!user) {
-      return res.json({ success: false, message: '账号不存在' });
+  const user = findOne(users, 'username', uname);
+  if (!user) return res.json({ success: false, message: '账号不存在' });
+  const valid = bcrypt.compareSync(password, user.password);
+  if (!valid) return res.json({ success: false, message: '密码错误' });
+
+  recordLoginSuccess(ip);
+  const token = generateToken();
+  activeTokens.set(token, {
+    username: user.username, role: user.role, name: user.name,
+    studentId: user.studentId, department: user.department, createdAt: Date.now()
+  });
+  // 清理过期 token（24小时）
+  const now = Date.now();
+  for (const [k, v] of activeTokens) {
+    if (now - v.createdAt > 86400000) activeTokens.delete(k);
+  }
+
+  res.json({
+    success: true,
+    token,
+    user: {
+      username: user.username, name: user.name, role: user.role,
+      studentId: user.studentId, department: user.department,
+      major: user.major, className: user.className, gender: user.gender,
+      enrollYear: user.enrollYear
     }
-    const valid = bcrypt.compareSync(password, user.password);
-    if (!valid) {
-      return res.json({ success: false, message: '密码错误' });
-    }
-    recordLoginSuccess(ip);
-    res.json({
-      success: true,
-      user: {
-        username: user.username, name: user.name, role: user.role,
-        studentId: user.studentId, department: user.department,
-        major: user.major, className: user.className, gender: user.gender,
-        enrollYear: user.enrollYear
-      }
-    });
-  }).catch(() => res.json({ success: false, message: '系统错误' }));
+  });
 });
 
 // 注册
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', (req, res) => {
   const { username, password, name, department, major, gender, enrollYear } = req.body;
   const uname = sanitize(username);
   const rname = sanitize(name);
   if (!uname || !password || !rname) return res.status(400).json({ success: false, message: '请填写必要信息' });
   if (password.length < 6) return res.json({ success: false, message: '密码至少6位' });
+  if (findOne(users, 'username', uname)) return res.json({ success: false, message: '该账号已存在' });
 
-  const exist = await dbGet('users', 'username = ?', [uname]);
-  if (exist) return res.json({ success: false, message: '该账号已存在' });
-
-  const hpw = bcrypt.hashSync(password, 10);
-  await dbInsert('users', {
-    username: uname, password: hpw, role: 'student',
+  users.push({
+    username: uname, password: bcrypt.hashSync(password, 10), role: 'student',
     name: rname, studentId: uname,
     department: sanitize(department) || '', major: sanitize(major) || '',
     className: '', gender: gender === '女' ? '女' : '男',
     enrollYear: sanitize(enrollYear) || '2024'
   });
-  await dbInsert('students', {
+  students.push({
     studentId: uname, name: rname, gender: gender === '女' ? '女' : '男',
     department: sanitize(department) || '', major: sanitize(major) || '',
     className: '', enrollYear: sanitize(enrollYear) || '2024',
@@ -424,44 +297,46 @@ app.post('/api/register', async (req, res) => {
   res.json({ success: true, message: '注册成功！请登录' });
 });
 
-// 修改密码
-app.post('/api/change-password', async (req, res) => {
-  const { username, oldPassword, newPassword } = req.body;
+// 修改密码（需要登录）
+app.post('/api/change-password', (req, res) => {
+  const { username, oldPassword, newPassword, token } = req.body;
+  const session = activeTokens.get(token);
+  if (!session || session.username !== sanitize(username)) {
+    return res.status(401).json({ success: false, message: '请先登录' });
+  }
   if (!newPassword || newPassword.length < 6) return res.json({ success: false, message: '新密码至少6位' });
-  const user = await dbGet('users', 'username = ?', [sanitize(username)]);
+  const user = findOne(users, 'username', sanitize(username));
   if (!user) return res.json({ success: false, message: '用户不存在' });
   if (!bcrypt.compareSync(oldPassword, user.password)) return res.json({ success: false, message: '原密码错误' });
-  const hpw = bcrypt.hashSync(newPassword, 10);
-  await dbUpdate('users', 'password = ?', 'username = ?', [hpw, sanitize(username)]);
+  user.password = bcrypt.hashSync(newPassword, 10);
   res.json({ success: true, message: '密码修改成功' });
 });
 
-// 学生信息
-app.get('/api/student/:sid', async (req, res) => {
-  const s = await dbGet('students', 'studentId = ?', [req.params.sid]);
-  const u = await dbGet('users', 'studentId = ?', [req.params.sid]);
-  res.json({ success: true, data: { ...(s || {}), ...(u ? { department: u.department, major: u.major, className: u.className, enrollYear: u.enrollYear } : {}) } });
+// 学校配置
+app.get('/api/config', (req, res) => res.json({ success: true, data: schoolConfig }));
+
+// 学生端 API
+app.get('/api/courses', (req, res) => {
+  const { page, pageSize, search, type, department } = req.query;
+  let list = [...courses];
+  if (search) {
+    const s = search.toLowerCase();
+    list = list.filter(c => c.name.toLowerCase().includes(s) || c.teacher.toLowerCase().includes(s) || c.id.toLowerCase().includes(s));
+  }
+  if (type) list = list.filter(c => c.type === type);
+  if (department) list = list.filter(c => c.department === department);
+  res.json({ success: true, ...paginate(list, parseInt(page) || 1, parseInt(pageSize) || 50) });
 });
 
-// 课程
-app.get('/api/courses', async (req, res) => {
-  const data = await dbAll('courses');
-  res.json({ success: true, data });
+app.get('/api/notices', (req, res) => {
+  const sorted = [...notices].sort((a, b) => b.date.localeCompare(a.date));
+  res.json({ success: true, data: sorted.slice(0, 20) });
 });
 
-// 课表
-app.get('/api/schedule/:sid', async (req, res) => {
-  const u = await dbGet('users', 'studentId = ?', [req.params.sid]);
-  const all = await dbAll('courses');
-  const dept = u ? u.department : '';
-  const data = all.filter(c => c.type === '必修' ? (c.department === dept || c.department === '公共课') : true);
-  res.json({ success: true, data });
-});
+app.get('/api/exams/:sid', (req, res) => res.json({ success: true, data: exams }));
 
-// 成绩
-app.get('/api/grades/:sid', async (req, res) => {
-  const all = await dbAll('grades');
-  const g = all.filter(x => x.studentId === req.params.sid);
+app.get('/api/grades/:sid', (req, res) => {
+  const g = findAll(grades, 'studentId', req.params.sid);
   const semesters = [...new Set(g.map(x => x.semester))].sort().reverse();
   const summary = {};
   semesters.forEach(sem => {
@@ -473,158 +348,369 @@ app.get('/api/grades/:sid', async (req, res) => {
   res.json({ success: true, data: g, semesters, summary });
 });
 
-// 选课
-app.post('/api/select-course', async (req, res) => {
+app.get('/api/schedule/:sid', (req, res) => {
+  const u = findOne(users, 'studentId', req.params.sid);
+  const dept = u ? u.department : '';
+  const data = courses.filter(c => c.type === '必修' ? (c.department === dept || c.department === '公共课') : true);
+  res.json({ success: true, data });
+});
+
+app.get('/api/student/:sid', (req, res) => {
+  const s = findOne(students, 'studentId', req.params.sid) || {};
+  const u = findOne(users, 'studentId', req.params.sid) || {};
+  res.json({ success: true, data: { ...s, ...(u ? { department: u.department, major: u.major, className: u.className, enrollYear: u.enrollYear } : {}) } });
+});
+
+// 选课/退课
+app.post('/api/select-course', (req, res) => {
   const { studentId, courseId } = req.body;
-  const c = await dbGet('courses', 'id = ?', [courseId]);
+  const c = findOne(courses, 'id', courseId);
   if (!c) return res.json({ success: false, message: '课程不存在' });
   if (c.selected >= c.capacity) return res.json({ success: false, message: '课程已满' });
-
-  await dbUpdate('courses', 'selected = selected + 1', 'id = ?', [courseId]);
-
-  const existing = await dbAll('my_courses');
-  if (!existing.find(x => x.studentId === studentId && x.courseId === courseId)) {
-    await dbInsert('my_courses', { studentId, courseId });
+  c.selected++;
+  if (!myCourses.find(x => x.studentId === studentId && x.courseId === courseId)) {
+    myCourses.push({ studentId, courseId });
   }
   res.json({ success: true, message: '选课成功！' });
 });
 
-// 退课
-app.post('/api/drop-course', async (req, res) => {
+app.post('/api/drop-course', (req, res) => {
   const { studentId, courseId } = req.body;
-  const c = await dbGet('courses', 'id = ?', [courseId]);
-  if (c && c.selected > 0) {
-    await dbUpdate('courses', 'selected = selected - 1', 'id = ?', [courseId]);
-  }
-  await dbDelete('my_courses', 'studentId = ? AND courseId = ?', [studentId, courseId]);
+  const c = findOne(courses, 'id', courseId);
+  if (c && c.selected > 0) c.selected--;
+  myCourses = myCourses.filter(x => !(x.studentId === studentId && x.courseId === courseId));
   res.json({ success: true, message: '退课成功！' });
 });
 
-// 我的选课
-app.get('/api/my-courses/:sid', async (req, res) => {
-  const mc = await dbAll('my_courses');
-  const all = await dbAll('courses');
-  const my = mc.filter(x => x.studentId === req.params.sid);
-  res.json({ success: true, data: my.map(x => all.find(c => c.id === x.courseId)).filter(Boolean) });
+app.get('/api/my-courses/:sid', (req, res) => {
+  const my = myCourses.filter(x => x.studentId === req.params.sid);
+  res.json({ success: true, data: my.map(x => findOne(courses, 'id', x.courseId)).filter(Boolean) });
 });
 
-// 通知
-app.get('/api/notices', async (req, res) => {
-  const data = await dbAll('notices');
-  res.json({ success: true, data: data.sort((a, b) => b.date.localeCompare(a.date)) });
+// ==================== 教师端 API ====================
+app.get('/api/teacher/courses', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || (session.role !== 'teacher' && session.role !== 'admin')) return res.status(403).json({ success: false, message: '无权限' });
+
+  const myCoursesList = courses.filter(c => c.teacher === session.name);
+  res.json({ success: true, data: myCoursesList });
 });
 
-// 考试
-app.get('/api/exams/:sid', async (req, res) => {
-  const data = await dbAll('exams');
-  res.json({ success: true, data });
+app.get('/api/teacher/course-students/:courseId', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || (session.role !== 'teacher' && session.role !== 'admin')) return res.status(403).json({ success: false, message: '无权限' });
+
+  const courseStudents = myCourses.filter(x => x.courseId === req.params.courseId);
+  const studentList = courseStudents.map(cs => {
+    const s = findOne(students, 'studentId', cs.studentId);
+    const g = grades.find(x => x.studentId === cs.studentId && x.courseId === req.params.courseId);
+    return { ...(s || {}), grade: g || null };
+  });
+  res.json({ success: true, data: studentList });
 });
 
-// ==================== 管理端 API（需要 admin 权限） ====================
-app.get('/api/admin/users', adminAuth, async (req, res) => {
-  const data = await dbAll('users');
-  res.json({ success: true, data: data.map(u => ({ ...u, password: undefined })) });
+app.post('/api/teacher/grades', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || (session.role !== 'teacher' && session.role !== 'admin')) return res.status(403).json({ success: false, message: '无权限' });
+
+  const { studentId, courseId, courseName, semester, credit, regularScore, examScore, totalScore, gpa, rank } = req.body;
+  const idx = grades.findIndex(g => g.studentId === studentId && g.courseId === courseId);
+  if (idx >= 0) {
+    Object.assign(grades[idx], req.body);
+  } else {
+    grades.push({ studentId, courseId, courseName, semester, credit, regularScore: regularScore || 0, examScore: examScore || 0, totalScore: totalScore || 0, gpa: gpa || 0, rank: rank || 0 });
+  }
+  res.json({ success: true, message: '成绩录入成功' });
 });
 
-app.delete('/api/admin/users/:username', adminAuth, async (req, res) => {
-  await dbDelete('users', 'username = ?', [req.params.username]);
-  await dbDelete('students', 'studentId = ?', [req.params.username]);
-  await dbDelete('grades', 'studentId = ?', [req.params.username]);
+// ==================== 管理端 API（需 admin token） ====================
+
+// 管理端获取所有数据（带分页搜索）
+app.get('/api/admin/users', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  const { page, pageSize, search, role } = req.query;
+  let list = users.map(u => ({ ...u, password: undefined }));
+  if (search) { const s = search.toLowerCase(); list = list.filter(u => u.name.toLowerCase().includes(s) || u.username.toLowerCase().includes(s) || u.department.toLowerCase().includes(s)); }
+  if (role) list = list.filter(u => u.role === role);
+  res.json({ success: true, ...paginate(list, parseInt(page) || 1, parseInt(pageSize) || 20) });
+});
+
+app.get('/api/admin/students', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  const { page, pageSize, search, department } = req.query;
+  let list = [...students];
+  if (search) { const s = search.toLowerCase(); list = list.filter(st => st.name.toLowerCase().includes(s) || st.studentId.toLowerCase().includes(s) || st.major.toLowerCase().includes(s)); }
+  if (department) list = list.filter(st => st.department === department);
+  res.json({ success: true, ...paginate(list, parseInt(page) || 1, parseInt(pageSize) || 20) });
+});
+
+app.get('/api/admin/grades', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  const { page, pageSize, search, semester } = req.query;
+  let list = [...grades];
+  if (search) { const s = search.toLowerCase(); list = list.filter(g => g.studentId.toLowerCase().includes(s) || g.courseName.toLowerCase().includes(s)); }
+  if (semester) list = list.filter(g => g.semester === semester);
+  res.json({ success: true, ...paginate(list, parseInt(page) || 1, parseInt(pageSize) || 30) });
+});
+
+// 管理端 CRUD
+app.delete('/api/admin/users/:username', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  removeOne(users, 'username', req.params.username);
+  removeOne(students, 'studentId', req.params.username);
+  grades = grades.filter(g => g.studentId !== req.params.username);
+  operationLogs.push({ time: new Date().toISOString(), admin: session.name, action: '删除用户', target: req.params.username });
   res.json({ success: true, message: '删除成功' });
 });
 
-app.post('/api/admin/courses', adminAuth, async (req, res) => {
-  await dbInsert('courses', req.body);
+app.post('/api/admin/courses', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  courses.push({ ...req.body, selected: req.body.selected || 0 });
+  operationLogs.push({ time: new Date().toISOString(), admin: session.name, action: '添加课程', target: req.body.id });
   res.json({ success: true, message: '添加成功' });
 });
 
-app.put('/api/admin/courses/:id', adminAuth, async (req, res) => {
-  const c = await dbGet('courses', 'id = ?', [req.params.id]);
+app.put('/api/admin/courses/:id', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  const c = findOne(courses, 'id', req.params.id);
   if (!c) return res.json({ success: false, message: '不存在' });
-  // 更新所有字段
-  const fields = req.body;
-  const setParts = Object.keys(fields).map(k => `${k} = ?`).join(', ');
-  const vals = Object.values(fields);
-  await dbUpdate('courses', setParts, 'id = ?', [...vals, req.params.id]);
+  Object.assign(c, req.body);
+  operationLogs.push({ time: new Date().toISOString(), admin: session.name, action: '编辑课程', target: req.params.id });
   res.json({ success: true, message: '更新成功' });
 });
 
-app.delete('/api/admin/courses/:id', adminAuth, async (req, res) => {
-  await dbDelete('courses', 'id = ?', [req.params.id]);
+app.delete('/api/admin/courses/:id', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  removeOne(courses, 'id', req.params.id);
+  operationLogs.push({ time: new Date().toISOString(), admin: session.name, action: '删除课程', target: req.params.id });
   res.json({ success: true, message: '删除成功' });
 });
 
-app.get('/api/admin/students', adminAuth, async (req, res) => {
-  const data = await dbAll('students');
-  res.json({ success: true, data });
-});
+app.post('/api/admin/grades', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
 
-app.get('/api/admin/grades', adminAuth, async (req, res) => {
-  const data = await dbAll('grades');
-  res.json({ success: true, data });
-});
-
-app.post('/api/admin/grades', adminAuth, async (req, res) => {
   const { studentId, courseId } = req.body;
-  const all = await dbAll('grades');
-  const exist = all.find(g => g.studentId === studentId && g.courseId === courseId);
-  if (exist) {
-    const fields = req.body;
-    const setParts = Object.keys(fields).map(k => `${k} = ?`).join(', ');
-    const vals = Object.values(fields);
-    await dbUpdate('grades', setParts, 'studentId = ? AND courseId = ?', [...vals, studentId, courseId]);
-  } else {
-    await dbInsert('grades', req.body);
-  }
-  res.json({ success: true, message: '保存成功' });
+  const idx = grades.findIndex(g => g.studentId === studentId && g.courseId === courseId);
+  if (idx >= 0) { Object.assign(grades[idx], req.body); }
+  else { grades.push(req.body); }
+  res.json({ success: true, message: '成绩保存成功' });
 });
 
-app.post('/api/admin/notices', adminAuth, async (req, res) => {
-  if (req.body.important === true || req.body.important === 'true') req.body.important = 1;
-  else req.body.important = 0;
-  await dbInsert('notices', req.body);
+app.post('/api/admin/grades/batch', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  const { grades: newGrades } = req.body;
+  if (!Array.isArray(newGrades)) return res.json({ success: false, message: '数据格式错误' });
+  let count = 0;
+  newGrades.forEach(g => {
+    const idx = grades.findIndex(x => x.studentId === g.studentId && x.courseId === g.courseId);
+    if (idx >= 0) { Object.assign(grades[idx], g); } else { grades.push(g); count++; }
+  });
+  operationLogs.push({ time: new Date().toISOString(), admin: session.name, action: '批量导入成绩', target: `${newGrades.length}条` });
+  res.json({ success: true, message: `成功处理${newGrades.length}条成绩` });
+});
+
+app.post('/api/admin/students/batch', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  const { students: newStudents } = req.body;
+  if (!Array.isArray(newStudents)) return res.json({ success: false, message: '数据格式错误' });
+  newStudents.forEach(s => {
+    if (!findOne(students, 'studentId', s.studentId)) {
+      students.push(s);
+      // 同时创建用户
+      if (!findOne(users, 'username', s.studentId)) {
+        users.push({
+          username: s.studentId, password: bcrypt.hashSync('123456', 10), role: 'student',
+          name: s.name, studentId: s.studentId, department: s.department || '',
+          major: s.major || '', className: s.className || '', gender: s.gender || '男',
+          enrollYear: s.enrollYear || '2024'
+        });
+      }
+    }
+  });
+  operationLogs.push({ time: new Date().toISOString(), admin: session.name, action: '批量导入学生', target: `${newStudents.length}人` });
+  res.json({ success: true, message: `成功导入${newStudents.length}名学生` });
+});
+
+app.post('/api/admin/notices', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  notices.unshift({ ...req.body, important: req.body.important === true || req.body.important === 'true' });
   res.json({ success: true, message: '发布成功' });
 });
 
-app.delete('/api/admin/notices/:id', adminAuth, async (req, res) => {
-  await dbDelete('notices', 'id = ?', [req.params.id]);
+app.delete('/api/admin/notices/:id', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  removeOne(notices, 'id', req.params.id);
   res.json({ success: true, message: '删除成功' });
 });
 
-app.post('/api/admin/exams', adminAuth, async (req, res) => {
-  await dbInsert('exams', req.body);
+app.post('/api/admin/exams', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  exams.push(req.body);
   res.json({ success: true, message: '添加成功' });
 });
 
-app.put('/api/admin/exams/:id', adminAuth, async (req, res) => {
-  const fields = req.body;
-  const setParts = Object.keys(fields).map(k => `${k} = ?`).join(', ');
-  const vals = Object.values(fields);
-  await dbUpdate('exams', setParts, 'id = ?', [...vals, req.params.id]);
-  res.json({ success: true, message: '更新成功' });
-});
+app.delete('/api/admin/exams/:id', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
 
-app.delete('/api/admin/exams/:id', adminAuth, async (req, res) => {
-  await dbDelete('exams', 'id = ?', [req.params.id]);
+  removeOne(exams, 'id', req.params.id);
   res.json({ success: true, message: '删除成功' });
 });
 
-// ==================== 静态文件 ====================
+// 学校配置更新
+app.post('/api/admin/config', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  Object.assign(schoolConfig, req.body);
+  operationLogs.push({ time: new Date().toISOString(), admin: session.name, action: '修改学校配置', target: '' });
+  res.json({ success: true, message: '配置已更新' });
+});
+
+// 操作日志
+app.get('/api/admin/logs', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  res.json({ success: true, data: operationLogs.slice(-100).reverse() });
+});
+
+// 统计数据
+app.get('/api/admin/stats', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.status(401).json({ success: false, message: '请先登录' });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session || session.role !== 'admin') return res.status(403).json({ success: false, message: '无管理员权限' });
+
+  res.json({
+    success: true,
+    data: {
+      totalStudents: students.filter(s => s.status === '在读').length,
+      totalTeachers: users.filter(u => u.role === 'teacher').length,
+      totalCourses: courses.length,
+      totalGrades: grades.length,
+      departments: [...new Set(students.map(s => s.department).filter(Boolean))],
+      studentByDept: [...new Set(students.map(s => s.department).filter(Boolean))].map(d => ({
+        department: d,
+        count: students.filter(s => s.department === d).length
+      }))
+    }
+  });
+});
+
+// 所有系部列表
+app.get('/api/departments', (req, res) => {
+  res.json({ success: true, data: [...new Set(students.map(s => s.department).filter(Boolean))] });
+});
+
+// 验证 token
+app.get('/api/verify-token', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return res.json({ success: false });
+  const token = authHeader.slice(7);
+  const session = activeTokens.get(token);
+  if (!session) return res.json({ success: false });
+  res.json({ success: true, user: session });
+});
+
+// ==================== 静态文件服务 ====================
 app.use(express.static(path.join(__dirname, '..')));
 app.get(/^\/(?!api\/).*/, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
-// 导出给 Vercel
 module.exports = app;
 
-// 本地启动
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   initData();
   app.listen(PORT, () => {
-    console.log(`✅ 教务系统后端已启动: http://localhost:${PORT}`);
+    console.log(`✅ H大学教务系统已启动: http://localhost:${PORT}`);
     console.log(`📋 管理员: admin / admin123`);
+    console.log(`📋 教师: t001 / 123456`);
     console.log(`📋 学生: 20230101001 / 123456`);
   });
 } else {
