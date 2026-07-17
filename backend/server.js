@@ -205,8 +205,8 @@ let schoolConfig = {
   motto: "厚德载物 · 博学笃行 · 求实创新",
   address: "湖北省孝感市学院路158号",
   phone: "(0712)2345612",
-  enrollmentPhone: "(0712)2345919",
-  email: "office@hu-university.edu.cn",
+  enrollmentPhone: "18695085845",
+  email: "2129474226@qq.com",
   copyright: "Copyright © 2024 H大学 All Rights Reserved",
   icp: "鄂ICP备06000924号",
   studentCount: "15000",
@@ -316,8 +316,10 @@ app.post('/api/register', (req, res) => {
   const { username, password, name, department, major, gender, enrollYear, email } = req.body;
   const uname = sanitize(username);
   const rname = sanitize(name);
-  if (!uname || !password || !rname) return res.status(400).json({ success: false, message: '请填写必要信息' });
-  if (password.length < 6) return res.json({ success: false, message: '密码至少6位' });
+  // 学号格式校验：必须11位数字
+  if (!uname || !/^\d{11}$/.test(uname)) return res.status(400).json({ success: false, message: '学号必须为11位数字，如 20230101001' });
+  if (!password || password.length < 6) return res.json({ success: false, message: '密码至少6位' });
+  if (!rname) return res.status(400).json({ success: false, message: '请填写必要信息' });
   if (findOne(users, 'username', uname)) return res.json({ success: false, message: '该账号已存在' });
 
   users.push({
@@ -325,7 +327,7 @@ app.post('/api/register', (req, res) => {
     name: rname, studentId: uname,
     department: sanitize(department) || '', major: sanitize(major) || '',
     className: '', gender: gender === '女' ? '女' : '男',
-    enrollYear: sanitize(enrollYear) || '2024', email: sanitize(email) || ''
+    enrollYear: sanitize(enrollYear) || uname.slice(0, 4), email: sanitize(email) || ''
   });
   students.push({
     studentId: uname, name: rname, gender: gender === '女' ? '女' : '男',

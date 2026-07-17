@@ -756,7 +756,7 @@
         <!-- 顶部工具栏 -->
         <div class="top-bar">
             <div class="container">
-                <span><i class="fa fa-phone"></i> 招生热线：0712-2345919 <span id="onlineStats" style="margin-left:16px;"></span></span>
+                <span><i class="fa fa-phone"></i> 招生热线：18695085845 <span id="onlineStats" style="margin-left:16px;"></span></span>
                 <span>
                     <a href="#"><i class="fa fa-envelope"></i> 院长信箱</a>
                     <a href="#"><i class="fa fa-envelope"></i> 书记信箱</a>
@@ -1029,7 +1029,7 @@
                 <div class="footer-bottom">
                     <p><strong>H大学</strong></p>
                     <p>地址：湖北省孝感市学院路158号 <span>|</span> 邮编：432000</p>
-                    <p>电话：(0712)2345612 <span>|</span> 招生热线：(0712)2345919 <span>|</span> 邮箱：office@hu-university.edu.cn</p>
+                    <p>电话：(0712)2345612 <span>|</span> 招生热线：18695085845 <span>|</span> 邮箱：2129474226@qq.com</p>
                     <p style="margin-top:8px;">Copyright &copy; 2024 H大学 All Rights Reserved <span>|</span> 鄂ICP备06000924号</p>
                 </div>
             </div>
@@ -1238,12 +1238,12 @@
                         </div>
                         <div id="loginMsg"></div>
                         <form id="loginFormModal" onsubmit="handleLoginModal(event)">
-                            <div class="form-group"><label>账号 / 学号</label><input type="text" id="loginUserModal" placeholder="请输入账号或学号" required></div>
+                            <div class="form-group"><label>账号 / 学号</label><input type="text" id="loginUserModal" placeholder="11位数字，如 20230101001" pattern="\d{11}" required></div>
                             <div class="form-group"><label>密码</label><input type="password" id="loginPassModal" placeholder="请输入密码" required></div>
                             <button type="submit" class="btn-submit" id="loginBtnModal">登 录</button>
                         </form>
                         <form id="registerFormModal" style="display:none;" onsubmit="handleRegisterModal(event)">
-                            <div class="form-row"><div class="form-group"><label>学号 *</label><input type="text" id="regSid" placeholder="请输入学号" required></div><div class="form-group"><label>姓名 *</label><input type="text" id="regName" placeholder="请输入真实姓名" required></div></div>
+                            <div class="form-row"><div class="form-group"><label>学号 *</label><input type="text" id="regSid" placeholder="11位数字，如 20230101001" pattern="\d{11}" maxlength="11" required oninput="this.value=this.value.replace(/\D/g,'').slice(0,11)"></div><div class="form-group"><label>姓名 *</label><input type="text" id="regName" placeholder="请输入真实姓名" required></div></div>
                             <div class="form-row"><div class="form-group"><label>密码 *</label><input type="password" id="regPwd" placeholder="至少6位" minlength="6" required></div><div class="form-group"><label>邮箱</label><input type="email" id="regEmail" placeholder="用于找回密码"></div></div>
                             <div class="form-row"><div class="form-group"><label>性别</label><select id="regGender"><option>男</option><option>女</option></select></div><div class="form-group"><label>院系</label><input type="text" id="regDept" placeholder="如：信息工程学院"></div></div>
                             <button type="submit" class="btn-submit">注 册</button>
@@ -1324,14 +1324,17 @@
 
     async function handleRegisterModal(e) {
         e.preventDefault();
+        const sid = document.getElementById('regSid').value.trim();
         const pwd = document.getElementById('regPwd').value;
+        // 学号格式校验：必须11位数字
+        if (!/^\d{11}$/.test(sid)) { document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">学号必须为11位数字，如 20230101001</div>'; return; }
         if (pwd.length < 6) { document.getElementById('loginMsg').innerHTML = '<div class="alert alert-error">密码至少6位</div>'; return; }
         const email = document.getElementById('regEmail').value.trim();
         try {
             const res = await fetch(API_BASE + '/api/register', {
                 method:'POST', headers:{'Content-Type':'application/json'},
                 body:JSON.stringify({
-                    username:document.getElementById('regSid').value.trim(),
+                    username: sid,
                     password:pwd,
                     name:document.getElementById('regName').value.trim(),
                     gender:document.getElementById('regGender').value,
@@ -1341,12 +1344,6 @@
             });
             const data = await res.json();
             if (data.success) {
-                // 注册成功后自动绑定邮箱
-                if (email) {
-                    const user = data.user || { username: document.getElementById('regSid').value.trim() };
-                    const u = findOne(users, 'username', user.username);
-                    // 邮箱已通过注册表单传入，在后端存储
-                }
                 toast('注册成功！请登录', 'success');
                 switchLoginTab('login');
                 document.getElementById('loginUserModal').value = document.getElementById('regSid').value.trim();
