@@ -1,0 +1,17 @@
+{
+  "name": "jiaowu-system",
+  "version": "1.0.0",
+  "description": "H大学教务管理系统",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "build": "cd backend && npm install",
+    "dev": "node backend/server.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "nodemailer": "^6.9.15"
+  }
+}
